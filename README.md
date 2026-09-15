@@ -62,7 +62,17 @@ Explainability (Grad-CAM)
 (Optional) Geospatial ice-probability map
 ```
 
-## 6. Experiments
+## 6. Results (Placeholder)
+
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params |
+|---|---|---|---|---|---|---|
+| Custom CNN | TBD | TBD | TBD | TBD | TBD | TBD |
+| ResNet (Scratch) | TBD | TBD | TBD | TBD | TBD | TBD |
+| ResNet (Pretrained)| TBD | TBD | TBD | TBD | TBD | TBD |
+
+*Note: The metrics above will be populated once real DFSAR/OHRC data is downloaded and the models are trained.*
+
+## 7. Experiments
 
 | Experiment | Input |
 |---|---|
