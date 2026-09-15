@@ -1,0 +1,19 @@
+# config.yaml
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  patch_size: 256
+  stride: 128
+
+split:
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  grid_size: [4, 4]
+  seed: 42
+
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 50
+  weighted_loss: true # true for handling class imbalance

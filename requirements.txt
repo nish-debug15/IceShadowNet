@@ -1,0 +1,9 @@
+numpy
+scipy
+rasterio
+torch
+torchvision
+scikit-learn
+matplotlib
+opencv-python
+grad-cam
