@@ -1,19 +1,30 @@
-# config.yaml
+# IceShadowNet configuration
+# All scripts read from this file via PyYAML.
+
 data:
   raw_dir: "data/raw"
   processed_dir: "data/processed"
   patch_size: 256
   stride: 128
+  dfsar_channels: 2       # HH, HV polarisations
+  ohrc_channels: 1        # single greyscale band
 
 split:
-  train_ratio: 0.7
+  train_ratio: 0.70
   val_ratio: 0.15
   test_ratio: 0.15
-  grid_size: [4, 4]
+  grid_size: [4, 4]       # spatial block grid (rows x cols)
   seed: 42
 
 training:
-  batch_size: 32
+  batch_size: 16
   learning_rate: 0.001
-  epochs: 50
-  weighted_loss: true # true for handling class imbalance
+  epochs: 30
+  focal_loss_gamma: 2.0   # used when imbalance ratio > 10
+  focal_loss_alpha: 0.25
+  device: "cpu"           # override to "cuda" if GPU is available
+
+paths:
+  models_dir: "models"
+  reports_dir: "reports"
+  gradcam_dir: "reports/gradcam"

@@ -1,51 +1,61 @@
+"""
+src/datasets/ice_dataset.py
+=============================
+PyTorch Dataset that wraps pre-extracted ice/non-ice patches.
+
+Changes from Phase 1
+---------------------
+- __getitem__ now loads from an in-memory patch list (real or synthetic)
+  rather than generating random noise on the fly.
+- Augmentation uses the real augment() function from preprocessing.data_ops.
+- Supports optional per-sample normalisation (zero-mean, unit-variance per channel)
+  which is important for SAR data with large dynamic range.
+"""
+
+import numpy as np
 import torch
 from torch.utils.data import Dataset
-import numpy as np
+
+from src.preprocessing.data_ops import augment as _augment
+
 
 class IcePatchDataset(Dataset):
     """
-    PyTorch Dataset for Lunar Ice Patches.
+    Dataset wrapping a list of (patch_image, label, coord) tuples.
+
+    Args:
+        patch_list (list):  Output of generate_patches() — each element is
+                            (img_chw float32, label int, (row, col)).
+        augment (bool):     Apply random flips/rotations on-the-fly (train only).
+        normalize (bool):   Normalise each patch to zero mean / unit std per channel.
     """
-    def __init__(self, coordinates, data_dir=None, patch_size=256, augment=False):
-        """
-        Args:
-            coordinates (list): List of (x, y) coordinates defining the patches.
-            data_dir (str): Directory containing real DFSAR data.
-            patch_size (int): Size of the patches.
-            augment (bool): Whether to apply on-the-fly augmentation.
-        """
-        self.coordinates = coordinates
-        self.data_dir = data_dir
-        self.patch_size = patch_size
-        self.augment = augment
-        
+
+    def __init__(self, patch_list: list, augment: bool = False, normalize: bool = True):
+        self.patches   = patch_list
+        self.do_augment = augment
+        self.normalize  = normalize
+
     def __len__(self):
-        return len(self.coordinates)
-        
+        return len(self.patches)
+
     def __getitem__(self, idx):
-        # coord = self.coordinates[idx]
-        
-        # TODO: Load real patch from data_dir using the coordinate.
-        # Since real DFSAR data isn't downloaded yet, we use synthetic tensors.
-        # Note: This is a dummy generation for pipeline verification.
-        
-        # Simulated 2-channel SAR data (e.g., CPR and DOP mapped to features, or raw channels)
-        image = np.random.randn(2, self.patch_size, self.patch_size).astype(np.float32)
-        
-        # Dummy label: 1 if potential ice, 0 if non-ice
-        label = np.random.randint(0, 2)
-        
-        if self.augment:
-            # Simple on-the-fly augmentation: random flips and rotations
-            # Valid for SAR intensity data (assuming rotation doesn't break polarimetric physical meaning in this simplified context)
-            if np.random.rand() > 0.5:
-                image = np.flip(image, axis=1) # Horizontal flip
-            if np.random.rand() > 0.5:
-                image = np.flip(image, axis=2) # Vertical flip
-            k = np.random.randint(0, 4)
-            image = np.rot90(image, k, axes=(1, 2))
-            
-        # Ensure contiguous array after numpy ops
-        image = np.ascontiguousarray(image)
-        
-        return torch.from_numpy(image), torch.tensor([label], dtype=torch.float32)
+        img_chw, label, _ = self.patches[idx]
+
+        # Clone to avoid mutating the shared patch list
+        img = img_chw.copy()
+
+        if self.do_augment:
+            img = _augment(img)
+
+        if self.normalize:
+            # Per-channel zero-mean / unit-std normalisation.
+            # Clamp std to avoid division by zero (can happen in synthetic uniform patches).
+            for c in range(img.shape[0]):
+                mu  = img[c].mean()
+                std = img[c].std()
+                img[c] = (img[c] - mu) / (std + 1e-8)
+
+        return (
+            torch.from_numpy(img),
+            torch.tensor([label], dtype=torch.float32),
+        )

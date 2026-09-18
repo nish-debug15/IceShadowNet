@@ -1,0 +1,32 @@
+# Large data files — never commit raw DFSAR/OHRC tiles to git
+data/raw/
+data/processed/
+
+# Model checkpoints (potentially large)
+models/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Reports generated files (keep .md, ignore generated images)
+reports/*.png
+reports/gradcam/*.png
+
+# Environment
+.env
+*.egg-info/
+dist/
+build/

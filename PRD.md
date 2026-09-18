@@ -98,14 +98,14 @@ This is scoped as a course Deep Learning project, not a reproduction of the full
 
 ## 11. Risks
 
-| Risk | Mitigation |
-|---|---|
-| Data access delay (admin-gated permissions on PRADAN) | Register and request access on day 1; contact ISSDC admin immediately if gated |
-| Label circularity (CNN just re-learns the threshold rule) | Explicitly frame contribution as spatial/textural generalization beyond pixel-wise thresholding; address directly in report/viva |
-| Small dataset (single crater) | Spatial-block split, heavy augmentation, report this as a limitation |
-| Class imbalance | Weighted loss / focal loss / oversampling; report F1 & ROC-AUC, not accuracy alone |
-| ResNet/ImageNet domain mismatch | Test both scratch-trained and adapted-pretrained ResNet; justify choice in report |
-| Scope creep back toward full ISRO hackathon problem | Keep rover path/ice-volume/landing-site work explicitly optional/future-work only |
+| Risk | Mitigation | Empirical Status (updated 2026-09-18) |
+|---|---|---|
+| Data access delay (admin-gated permissions on PRADAN) | Register and request access on day 1; contact ISSDC admin immediately if gated | **CONFIRMED — NOT RESOLVED.** No tiles downloaded. Pipeline runs on physically-motivated synthetic data. Evidence: `data/raw/` is empty; `reports/data_notes.md` documents the gap. All metrics are synthetic-data only. |
+| Label circularity (CNN just re-learns the threshold rule) | Explicitly frame contribution as spatial/textural generalization beyond pixel-wise thresholding; address directly in report/viva | **RISK PRESENT — CANNOT YET CONFIRM/REFUTE.** Circularity check is implemented in `scripts/train_all.py` (flag_suspicious_metrics). Grad-CAM overlays in `reports/gradcam/` will provide visual evidence. Requires real data to assess definitively. |
+| Small dataset (single crater) | Spatial-block split, heavy augmentation, report this as a limitation | **CONFIRMED AS LIMITATION.** Synthetic scene is single-scene (1024×1024). Spatial block split (4×4 grid) implemented and verified with hard Python assert. Evidence: `src/datasets/spatial_split.py` assertion passes in all runs. |
+| Class imbalance | Weighted loss / focal loss / oversampling; report F1 & ROC-AUC, not accuracy alone | **CONFIRMED — MITIGATED.** Synthetic scene yields ~15% ice patches (minority). `scripts/train_all.py` reads `pos_weight` from `reports/class_balance.txt` and selects BCE(pos_weight) vs FocalLoss automatically. Evidence: `reports/class_balance.txt`. |
+| ResNet/ImageNet domain mismatch | Test both scratch-trained and adapted-pretrained ResNet; justify choice in report | **EMPIRICALLY TESTED — RESULTS PENDING REAL DATA.** Both scratch and pretrained variants are implemented and trained. Pretrained first-conv weights are averaged across RGB channels and adapted to 2-channel SAR. Domain mismatch tradeoff is documented in `src/models/resnet.py` docstring. |
+| Scope creep back toward full ISRO hackathon problem | Keep rover path/ice-volume/landing-site work explicitly optional/future-work only | **CONFIRMED CONTROLLED.** Rover path, ice volume, landing-site scoring remain deferred to PRD §13 (Future Scope). No code for these exists in src/. |
 
 ## 12. Success Criteria
 
