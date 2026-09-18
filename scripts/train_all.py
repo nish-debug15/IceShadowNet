@@ -163,7 +163,7 @@ def evaluate(model, loader):
         metrics["roc_auc"] = roc_auc_score(labels, probs)
     except ValueError:
         metrics["roc_auc"] = float("nan")
-    metrics["cm"]     = confusion_matrix(labels, preds)
+    metrics["cm"]     = confusion_matrix(labels, preds, labels=[0, 1])
     metrics["probs"]  = probs
     metrics["labels"] = labels
     return metrics
@@ -297,7 +297,7 @@ def flag_suspicious_metrics(metrics, name):
     f1  = metrics.get("f1", 0)
     if acc > 0.97 or f1 > 0.97:
         msg = (
-            f"\n⚠️  SUSPICIOUS PERFORMANCE: {name}\n"
+            f"\n[WARNING] SUSPICIOUS PERFORMANCE: {name}\n"
             f"   accuracy={acc:.3f}, F1={f1:.3f}\n"
             "   This may indicate label circularity: the model could be\n"
             "   re-learning the CPR>1 AND DOP<0.13 threshold rule rather\n"
@@ -405,7 +405,7 @@ def main():
             f"{r['params']:,} | {r['train_time']} |\n"
         )
     if circularity_flags:
-        summary_md += "\n## ⚠️ Circularity / Near-Perfect Accuracy Flags\n\n"
+        summary_md += "\n## [WARNING] Circularity / Near-Perfect Accuracy Flags\n\n"
         for flag in circularity_flags:
             summary_md += flag + "\n"
 

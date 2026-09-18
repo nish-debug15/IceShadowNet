@@ -210,9 +210,14 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 <!-- Auto-populated from reports/training_summary_multimodal.md -->
 
-```
-TODO: paste content of reports/training_summary_multimodal.md here after running train_multimodal.py
-```
+# Multimodal Training Summary
+
+> **DATA SOURCE:** SYNTHETIC. See reports/data_notes.md.
+
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params | Time (s) |
+|-------|----------|-----------|--------|----|---------|--------|----------|
+| EarlyFusionCNN | 1.0000 | 0.0000 | 0.0000 | 0.0000 | nan | 618,497 | 15.0 |
+| LateFusionResNet | 1.0000 | 0.0000 | 0.0000 | 0.0000 | nan | 22,606,273 | 48.1 |
 
 ### 6.3 Loss Curves
 

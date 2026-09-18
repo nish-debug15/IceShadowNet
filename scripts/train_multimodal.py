@@ -65,7 +65,7 @@ def evaluate_mm(model, loader):
         "precision": precision_score(labels, preds, zero_division=0),
         "recall":    recall_score(labels, preds, zero_division=0),
         "f1":        f1_score(labels, preds, zero_division=0),
-        "cm":        confusion_matrix(labels, preds),
+        "cm":        confusion_matrix(labels, preds, labels=[0, 1]),
         "probs":     probs,
         "labels":    labels,
     }
