@@ -2,18 +2,18 @@ Data source          : SYNTHETIC (no real DFSAR tiles found in data/raw/)
 OHRC source          : SYNTHETIC
 Patch size / stride  : 256 / 128
 Total patches        : 225
-  Ice (positive)     : 15  (6.7%)
-  Non-ice (negative) : 210 (93.3%)
-pos_weight for BCE   : 14.00  (= n_noice / n_ice)
+  Ice (positive)     : 60  (26.7%)
+  Non-ice (negative) : 165 (73.3%)
+pos_weight for BCE   : 2.75  (= n_noice / n_ice)
 
 Train / Val / Test   : 155 / 32 / 38
-  Train ice rate     : 4.5%
-  Val   ice rate     : 12.5%
-  Test  ice rate     : 10.5%
+  Train ice rate     : 23.9%
+  Val   ice rate     : 37.5%
+  Test  ice rate     : 28.9%
 
 Spatial split grid   : (8, 8)
 Leakage assertion    : PASSED (no coordinate in >1 split)
 
 RECOMMENDATION:
-  pos_weight = 14.00 -> use BCEWithLogitsLoss(pos_weight=tensor([14.00]))
+  pos_weight = 2.75 -> use BCEWithLogitsLoss(pos_weight=tensor([2.75]))
   Focal loss is also viable given strong imbalance if ice_ratio < 0.15

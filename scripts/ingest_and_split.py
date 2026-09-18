@@ -156,6 +156,10 @@ def main():
     lbl_train = save_split(train_patches, "train")
     lbl_val   = save_split(val_patches,   "val")
     lbl_test  = save_split(test_patches,  "test")
+    
+    assert lbl_train.sum() > 0, "FATAL: Train split contains zero positive (ice) samples!"
+    assert lbl_val.sum() > 0, "FATAL: Val split contains zero positive (ice) samples!"
+    assert lbl_test.sum() > 0, "FATAL: Test split contains zero positive (ice) samples!"
 
     # ── 8. Class balance report ───────────────────────────────────────────────
     pos_weight = n_noice / max(n_ice, 1)   # for BCEWithLogitsLoss pos_weight arg

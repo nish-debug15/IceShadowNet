@@ -1,32 +1,32 @@
 [
   {
     "model": "CustomCNN",
-    "accuracy": 0.8947368421052632,
-    "precision": 0.0,
-    "recall": 0.0,
-    "f1": 0.0,
-    "roc_auc": 0.4117647058823529,
+    "accuracy": 0.7368421052631579,
+    "precision": 0.6666666666666666,
+    "recall": 0.18181818181818182,
+    "f1": 0.2857142857142857,
+    "roc_auc": 0.5521885521885521,
     "params": 618209,
-    "train_time": 18.7
+    "train_time": 331.8
   },
   {
     "model": "ResNet_scratch",
-    "accuracy": 0.10526315789473684,
-    "precision": 0.10526315789473684,
-    "recall": 1.0,
-    "f1": 0.19047619047619047,
-    "roc_auc": 0.6102941176470588,
+    "accuracy": 0.8421052631578947,
+    "precision": 0.8571428571428571,
+    "recall": 0.5454545454545454,
+    "f1": 0.6666666666666666,
+    "roc_auc": 0.8383838383838385,
     "params": 11173889,
-    "train_time": 33.6
+    "train_time": 726.7
   },
   {
     "model": "ResNet_pretrained",
     "accuracy": 0.8421052631578947,
-    "precision": 0.0,
-    "recall": 0.0,
-    "f1": 0.0,
-    "roc_auc": 0.463235294117647,
+    "precision": 1.0,
+    "recall": 0.45454545454545453,
+    "f1": 0.625,
+    "roc_auc": 0.8686868686868686,
     "params": 6067201,
-    "train_time": 19.3
+    "train_time": 426.2
   }
 ]

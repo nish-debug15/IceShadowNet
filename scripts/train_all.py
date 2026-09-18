@@ -54,7 +54,7 @@ os.makedirs(MODELS_DIR,  exist_ok=True)
 
 # ── Hyper-parameters ───────────────────────────────────────────────────────────
 BATCH_SIZE = 16
-EPOCHS     = 3           # reduced to 3 for faster CPU demo; increase to 30-50 with GPU or real data
+EPOCHS     = 30          # bumped to 30 to allow convergence and prevent majority-class collapse on small datasets
 LR         = 1e-3
 SEED       = 42
 DEVICE     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -100,7 +100,7 @@ def select_loss(pos_weight_val: float):
         return FocalLoss(alpha=0.25, gamma=2.0)
     else:
         pw = torch.tensor([pos_weight_val], dtype=torch.float32).to(DEVICE)
-        print(f"  Imbalance ratio {pos_weight_val:.1f} ≤ 10 -> using BCEWithLogitsLoss(pos_weight={pos_weight_val:.2f})")
+        print(f"  Imbalance ratio {pos_weight_val:.1f} <= 10 -> using BCEWithLogitsLoss(pos_weight={pos_weight_val:.2f})")
         return nn.BCEWithLogitsLoss(pos_weight=pw)
 
 
@@ -295,6 +295,8 @@ def flag_suspicious_metrics(metrics, name):
     """
     acc = metrics.get("accuracy", 0)
     f1  = metrics.get("f1", 0)
+    precision = metrics.get("precision", 0)
+    recall = metrics.get("recall", 0)
     if acc > 0.97 or f1 > 0.97:
         msg = (
             f"\n[WARNING] SUSPICIOUS PERFORMANCE: {name}\n"
@@ -305,6 +307,14 @@ def flag_suspicious_metrics(metrics, name):
             "   -> Inspect Grad-CAM (Block 3) and check if attention focuses\n"
             "     on physically plausible spatial structures beyond single pixels.\n"
             "   -> Report this limitation explicitly in viva and report.\n"
+        )
+        print(msg)
+        return msg
+    elif precision == 0 and recall == 0:
+        msg = (
+            f"\n[WARNING] MAJORITY-CLASS COLLAPSE: {name}\n"
+            f"   accuracy={acc:.3f}, Precision={precision:.3f}, Recall={recall:.3f}\n"
+            "   The model failed to learn the minority class and is predicting a single class for everything.\n"
         )
         print(msg)
         return msg

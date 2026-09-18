@@ -80,31 +80,33 @@ def main():
     coord_to_dfsar  = {(p[2][0], p[2][1]): p for p in dfsar_patches}
 
     def save_mm_split(clist, name):
-        imgs_d, imgs_o, lbls = [], [], []
-        for c in clist:
-            if c not in coord_to_dfsar:
-                continue
-            img_d, lbl, _ = coord_to_dfsar[c]
-            img_o = ohrc_patches_dict[c]
-            imgs_d.append(img_d)
-            imgs_o.append(img_o)
-            lbls.append(lbl)
-        if not imgs_d:
-            print(f"  WARNING: no patches for split {name}")
-            return
-        path = os.path.join(PROCESSED_DIR, f"{name}_multimodal.npz")
+        if len(clist) == 0:
+            print(f"  Saved {name}_multimodal.npz  (0 patches)")
+            return np.array([])
+        d_p = np.stack([coord_to_dfsar[c][0] for c in clist], axis=0) # (N, 2, 256, 256)
+        o_p = np.stack([ohrc_patches_dict[c]  for c in clist], axis=0) # (N, 1, 256, 256)
+        
+        # Calculate labels exactly as datasets do
+        cpr, dop = compute_cpr_dop(np.transpose(d_p, (0, 2, 3, 1))) # (N, H, W, 2)
+        lbls = label_from_threshold(cpr, dop).sum(axis=(1,2)) / (PATCH_SIZE*PATCH_SIZE) > 0.03
+        
         np.savez_compressed(
-            path,
-            images_dfsar=np.stack(imgs_d),
-            images_ohrc =np.stack(imgs_o),
-            labels      =np.array(lbls, dtype=np.int8),
+            os.path.join(PROCESSED_DIR, f"{name}_multimodal.npz"),
+            images_dfsar=d_p,
+            images_ohrc=o_p,
+            labels=lbls
         )
         print(f"  Saved {name}_multimodal.npz  ({len(lbls)} patches)")
+        return lbls
 
     print("Saving multimodal splits...")
-    save_mm_split(train_c, "train")
-    save_mm_split(val_c,   "val")
-    save_mm_split(test_c,  "test")
+    lbl_train = save_mm_split(train_c, "train")
+    lbl_val   = save_mm_split(val_c,   "val")
+    lbl_test  = save_mm_split(test_c,  "test")
+    
+    assert lbl_train.sum() > 0, "FATAL: Multimodal Train split contains zero positive (ice) samples!"
+    assert lbl_val.sum() > 0, "FATAL: Multimodal Val split contains zero positive (ice) samples!"
+    assert lbl_test.sum() > 0, "FATAL: Multimodal Test split contains zero positive (ice) samples!"
     print("Multimodal ingestion complete.")
 
 

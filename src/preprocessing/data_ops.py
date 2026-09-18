@@ -65,36 +65,51 @@ def _synthetic_dfsar(height: int = 2048, width: int = 2048, seed: int = 42) -> n
     rng = np.random.default_rng(seed)
 
     # Smooth terrain HH backscatter (range 0.3 - 0.8)
-    HH = (gaussian_filter(rng.random((height, width)).astype(np.float32), sigma=40)
-          * 0.5 + 0.3)
+    hh_true = (gaussian_filter(rng.random((height, width)).astype(np.float32), sigma=40)
+               * 0.5 + 0.3)
 
-    # Non-ice HV: true CPR = 0.12 -> well below 1 even after L=4 speckle
-    HV = HH * 0.12
+    # Initialize true CPR with non-ice background value (0.12)
+    true_cpr = np.full((height, width), 0.12, dtype=np.float32)
 
-    # Ice-candidate block: bottom-right 512x512, true CPR = 2.5
-    ice_r = height - 512
-    ice_c = width  - 512
-    HV[ice_r:, ice_c:] = HH[ice_r:, ice_c:] * 2.5
+    # Ice-candidate blocks: scatter 4 craters (512x512 each) to ensure ice spans the geographic grid
+    # Top-Left
+    true_cpr[:512, :512] = 2.5
+    # Top-Right
+    true_cpr[:512, -512:] = 2.5
+    # Bottom-Left
+    true_cpr[-512:, :512] = 2.5
+    # Bottom-Right
+    true_cpr[-512:, -512:] = 2.5
+
+    # Simulate HV backscatter = HH * CPR
+    hv_true = hh_true * true_cpr
 
     # Multiplicative speckle (L=4, gamma distributed, mean=1, CV=1/sqrt(4)=0.5)
-    HH = HH * rng.standard_gamma(4, size=(height, width)).astype(np.float32) / 4.0
-    HV = HV * rng.standard_gamma(4, size=(height, width)).astype(np.float32) / 4.0
+    L = 4
+    speckle_hh = rng.standard_gamma(L, size=(height, width)).astype(np.float32) / L
+    speckle_hv = rng.standard_gamma(L, size=(height, width)).astype(np.float32) / L
 
-    return np.stack([HH, HV], axis=-1)  # (H, W, 2)
+    hh_speckled = hh_true * speckle_hh
+    hv_speckled = hv_true * speckle_hv
+
+    return np.stack([hh_speckled, hv_speckled], axis=-1)  # (H, W, 2)
 
 
 def _synthetic_ohrc(height: int = 2048, width: int = 2048, seed: int = 43) -> np.ndarray:
     """
     Generate a physically-motivated synthetic OHRC tile (single greyscale band).
     OHRC is optical so we model it as smooth terrain albedo + noise.
-    The permanently-shadowed region (PSR) covers the bottom-right quadrant
-    (matching the ice candidate region) and has near-zero albedo.
+    The permanently-shadowed regions (PSRs) cover the four corners (matching
+    the ice candidate regions in DFSAR) and have near-zero albedo.
     """
     from scipy.ndimage import gaussian_filter
     rng = np.random.default_rng(seed)
     base = gaussian_filter(rng.random((height, width)).astype(np.float32), sigma=30) * 0.6 + 0.1
-    # PSR = low albedo in bottom-right quadrant (matching DFSAR ice region)
-    base[height - 512:, width - 512:] *= 0.05
+    # PSR = low albedo in four corners (matching DFSAR ice regions)
+    base[:512, :512] *= 0.05
+    base[:512, -512:] *= 0.05
+    base[-512:, :512] *= 0.05
+    base[-512:, -512:] *= 0.05
     noise = rng.random((height, width)).astype(np.float32) * 0.03
     return (base + noise).astype(np.float32)
 
@@ -186,8 +201,8 @@ def compute_cpr_dop(dfsar_array: np.ndarray):
     Returns:
         (cpr, dop): two float32 arrays of shape (H, W).
     """
-    HH = dfsar_array[:, :, 0].astype(np.float64)
-    HV = dfsar_array[:, :, 1].astype(np.float64)
+    HH = dfsar_array[..., 0].astype(np.float64)
+    HV = dfsar_array[..., 1].astype(np.float64)
 
     eps = 1e-9
     cpr = HV / (HH + eps)
