@@ -54,7 +54,7 @@ os.makedirs(MODELS_DIR,  exist_ok=True)
 
 # ── Hyper-parameters ───────────────────────────────────────────────────────────
 BATCH_SIZE = 16
-EPOCHS     = 30          # enough for convergence on a small synthetic dataset
+EPOCHS     = 3           # reduced to 3 for faster CPU demo; increase to 30-50 with GPU or real data
 LR         = 1e-3
 SEED       = 42
 DEVICE     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -96,11 +96,11 @@ class FocalLoss(nn.Module):
 def select_loss(pos_weight_val: float):
     """Return an appropriate loss function given the positive class weight."""
     if pos_weight_val > 10.0:
-        print(f"  Imbalance ratio {pos_weight_val:.1f} > 10 → using Focal Loss (gamma=2)")
+        print(f"  Imbalance ratio {pos_weight_val:.1f} > 10 -> using Focal Loss (gamma=2)")
         return FocalLoss(alpha=0.25, gamma=2.0)
     else:
         pw = torch.tensor([pos_weight_val], dtype=torch.float32).to(DEVICE)
-        print(f"  Imbalance ratio {pos_weight_val:.1f} ≤ 10 → using BCEWithLogitsLoss(pos_weight={pos_weight_val:.2f})")
+        print(f"  Imbalance ratio {pos_weight_val:.1f} ≤ 10 -> using BCEWithLogitsLoss(pos_weight={pos_weight_val:.2f})")
         return nn.BCEWithLogitsLoss(pos_weight=pw)
 
 
@@ -302,9 +302,9 @@ def flag_suspicious_metrics(metrics, name):
             "   This may indicate label circularity: the model could be\n"
             "   re-learning the CPR>1 AND DOP<0.13 threshold rule rather\n"
             "   than learning spatial/textural features.\n"
-            "   → Inspect Grad-CAM (Block 3) and check if attention focuses\n"
+            "   -> Inspect Grad-CAM (Block 3) and check if attention focuses\n"
             "     on physically plausible spatial structures beyond single pixels.\n"
-            "   → Report this limitation explicitly in viva and report.\n"
+            "   -> Report this limitation explicitly in viva and report.\n"
         )
         print(msg)
         return msg

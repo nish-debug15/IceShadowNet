@@ -13,7 +13,7 @@ split:
   train_ratio: 0.70
   val_ratio: 0.15
   test_ratio: 0.15
-  grid_size: [4, 4]       # spatial block grid (rows x cols)
+  grid_size: [8, 8]       # spatial block grid (rows x cols)
   seed: 42
 
 training:

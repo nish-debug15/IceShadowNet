@@ -71,7 +71,25 @@ The synthetic DFSAR scene models:
 <!-- Auto-populated from reports/class_balance.txt -->
 
 ```
-TODO: paste content of reports/class_balance.txt here after running ingest_and_split.py
+Data source          : SYNTHETIC (no real DFSAR tiles found in data/raw/)
+OHRC source          : SYNTHETIC
+Patch size / stride  : 256 / 128
+Total patches        : 225
+  Ice (positive)     : 15  (6.7%)
+  Non-ice (negative) : 210 (93.3%)
+pos_weight for BCE   : 14.00  (= n_noice / n_ice)
+
+Train / Val / Test   : 155 / 32 / 38
+  Train ice rate     : 4.5%
+  Val   ice rate     : 12.5%
+  Test  ice rate     : 10.5%
+
+Spatial split grid   : (8, 8)
+Leakage assertion    : PASSED (no coordinate in >1 split)
+
+RECOMMENDATION:
+  pos_weight = 14.00 -> use BCEWithLogitsLoss(pos_weight=tensor([14.00]))
+  Focal loss is also viable given strong imbalance if ice_ratio < 0.15
 ```
 
 ### 3.4 Labeling
@@ -178,9 +196,15 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 <!-- Auto-populated from reports/training_summary.md -->
 
-```
-TODO: paste content of reports/training_summary.md here after running train_all.py
-```
+# Training Summary
+
+> **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene - no real DFSAR tiles from PRADAN yet). Numbers below demonstrate pipeline correctness only, NOT real ice-detection performance.
+
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params | Time (s) |
+|-------|----------|-----------|--------|----|---------|--------|----------|
+| CustomCNN | 0.8947 | 0.0000 | 0.0000 | 0.0000 | 0.4118 | 618,209 | 18.7 |
+| ResNet_scratch | 0.1053 | 0.1053 | 1.0000 | 0.1905 | 0.6103 | 11,173,889 | 33.6 |
+| ResNet_pretrained | 0.8421 | 0.0000 | 0.0000 | 0.0000 | 0.4632 | 6,067,201 | 19.3 |
 
 ### 6.2 Multimodal Models (DFSAR + OHRC)
 
