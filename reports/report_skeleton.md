@@ -198,6 +198,8 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 # Training Summary
 
+## ⚠️ SYNTHETIC DATA — PLACEHOLDER
+
 > **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene - no real DFSAR tiles from PRADAN yet). Numbers below demonstrate pipeline correctness only, NOT real ice-detection performance.
 
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params | Time (s) |
@@ -212,6 +214,8 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 # Multimodal Training Summary
 
+## ⚠️ SYNTHETIC DATA — PLACEHOLDER
+
 > **DATA SOURCE:** SYNTHETIC. See reports/data_notes.md.
 
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params | Time (s) |
@@ -220,18 +224,22 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 | LateFusionResNet | 1.0000 | 0.0000 | 0.0000 | 0.0000 | nan | 22,606,273 | 48.1 |
 
 ### 6.3 Loss Curves
+**⚠️ SYNTHETIC DATA — PLACEHOLDER**
 
 <!-- Embed: reports/CustomCNN_loss_curve.png, reports/ResNet_scratch_loss_curve.png, reports/ResNet_pretrained_loss_curve.png -->
 
 ### 6.4 Confusion Matrices
+**⚠️ SYNTHETIC DATA — PLACEHOLDER**
 
 <!-- Embed: reports/CustomCNN_confusion_matrix.png etc. -->
 
 ### 6.5 ROC Curves
+**⚠️ SYNTHETIC DATA — PLACEHOLDER**
 
 <!-- Embed: reports/CustomCNN_roc_curve.png etc. -->
 
 ### 6.6 Grad-CAM Overlays
+**⚠️ SYNTHETIC DATA — PLACEHOLDER**
 
 <!-- Embed: reports/gradcam/*.png — discuss whether attention regions are physically plausible -->
 
