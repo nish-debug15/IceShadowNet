@@ -38,6 +38,8 @@ except ImportError:
 # ==============================================================================
 
 def _synthetic_dfsar(height: int = 2048, width: int = 2048, seed: int = 42) -> np.ndarray:
+    np.random.seed(seed)
+    # Background (regolith): low CPR (~0.2), high DOP (~0.7)
     """
     Generate a physically-motivated synthetic DFSAR scene (2048x2048 pixels).
 
@@ -96,6 +98,7 @@ def _synthetic_dfsar(height: int = 2048, width: int = 2048, seed: int = 42) -> n
 
 
 def _synthetic_ohrc(height: int = 2048, width: int = 2048, seed: int = 43) -> np.ndarray:
+    np.random.seed(seed)
     """
     Generate a physically-motivated synthetic OHRC tile (single greyscale band).
     OHRC is optical so we model it as smooth terrain albedo + noise.

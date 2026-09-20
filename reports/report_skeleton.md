@@ -198,15 +198,26 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 # Training Summary
 
-## ⚠️ SYNTHETIC DATA — PLACEHOLDER
+> **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene -- no real DFSAR tiles from PRADAN yet). Numbers below demonstrate pipeline correctness only, NOT real ice-detection performance.
 
-> **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene - no real DFSAR tiles from PRADAN yet). Numbers below demonstrate pipeline correctness only, NOT real ice-detection performance.
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |
+|-------|----------|-----------|--------|----|---------|---------|--------|----------|
+| CustomCNN | 0.7281±0.0124 | 0.4444±0.3143 | 0.1212±0.0857 | 0.1905±0.1347 | 0.4882±0.0225 | TP:2 FP:1 FN:9 TN:26 (Pos:11 Neg:27) | 618,209 | 14.3 |
+| ResNet_scratch | 0.7105±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.4820±0.0794 | TP:0 FP:0 FN:11 TN:27 (Pos:11 Neg:27) | 11,173,889 | 54.7 |
+| ResNet_pretrained | 0.7105±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.4355±0.0894 | TP:0 FP:0 FN:11 TN:27 (Pos:11 Neg:27) | 6,067,201 | 45.3 |
 
-| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params | Time (s) |
-|-------|----------|-----------|--------|----|---------|--------|----------|
-| CustomCNN | 0.8947 | 0.0000 | 0.0000 | 0.0000 | 0.4118 | 618,209 | 18.7 |
-| ResNet_scratch | 0.1053 | 0.1053 | 1.0000 | 0.1905 | 0.6103 | 11,173,889 | 33.6 |
-| ResNet_pretrained | 0.8421 | 0.0000 | 0.0000 | 0.0000 | 0.4632 | 6,067,201 | 19.3 |
+## [WARNING] Circularity / Low Support Flags
+
+
+[WARNING] MAJORITY-CLASS COLLAPSE: ResNet_scratch
+   accuracy=0.711, Precision=0.000, Recall=0.000
+   The model failed to learn the minority class and is predicting a single class for everything.
+
+
+[WARNING] MAJORITY-CLASS COLLAPSE: ResNet_pretrained
+   accuracy=0.711, Precision=0.000, Recall=0.000
+   The model failed to learn the minority class and is predicting a single class for everything.
+
 
 ### 6.2 Multimodal Models (DFSAR + OHRC)
 
@@ -214,14 +225,19 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 # Multimodal Training Summary
 
-## ⚠️ SYNTHETIC DATA — PLACEHOLDER
-
 > **DATA SOURCE:** SYNTHETIC. See reports/data_notes.md.
 
-| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params | Time (s) |
-|-------|----------|-----------|--------|----|---------|--------|----------|
-| EarlyFusionCNN | 1.0000 | 0.0000 | 0.0000 | 0.0000 | nan | 618,497 | 15.0 |
-| LateFusionResNet | 1.0000 | 0.0000 | 0.0000 | 0.0000 | nan | 22,606,273 | 48.1 |
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |
+|-------|----------|-----------|--------|----|---------|---------|--------|----------|
+| EarlyFusionCNN | 0.4697±0.0652 | 0.8918±0.0782 | 0.2667±0.1247 | 0.3888±0.1526 | 0.4294±0.0464 | TP:12 FP:2 FN:18 TN:12 (Pos:30 Neg:14) | 618,497 | 11.2 |
+| LateFusionResNet | 0.4394±0.1714 | 0.2273±0.3214 | 0.3333±0.4714 | 0.2703±0.3822 | 0.5270±0.0522 | TP:30 FP:14 FN:0 TN:0 (Pos:30 Neg:14) | 22,606,273 | 43.9 |
+
+## [WARNING] Circularity / Low Support Flags
+
+
+[WARNING] LOW SUPPORT -- METRICS ON THIS SPLIT ARE NOISY
+   Val Positives: 0.0, Test Positives: 30.0
+
 
 ### 6.3 Loss Curves
 **⚠️ SYNTHETIC DATA — PLACEHOLDER**

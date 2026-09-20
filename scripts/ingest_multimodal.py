@@ -68,10 +68,15 @@ def main():
         op = ohrc_stacked[r:r+PATCH_SIZE, c:c+PATCH_SIZE]
         ohrc_patches_dict[(r, c)] = np.transpose(op, (2, 0, 1)).astype(np.float32)
 
-    # Spatial split (same seed → same block assignments as DFSAR-only run)
-    coords = [(p[2][0], p[2][1]) for p in dfsar_patches]
-    train_c, val_c, test_c = spatial_block_split(coords, GRID_SIZE, TRAIN_RATIO, VAL_RATIO)
-
+    # Spatial split (force identical assignment as unimodal)
+    def load_coords(name):
+        d = np.load(f"data/processed/{name}.npz")
+        return [(int(c[0]), int(c[1])) for c in d["coords"]]
+        
+    train_c = load_coords("train")
+    val_c   = load_coords("val")
+    test_c  = load_coords("test")
+    
     # Leakage assertion
     assert set(train_c).isdisjoint(val_c),  "LEAKAGE: train ∩ val"
     assert set(train_c).isdisjoint(test_c), "LEAKAGE: train ∩ test"

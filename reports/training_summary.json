@@ -9,7 +9,7 @@
     "val_f1": "0.2619\u00b10.2048",
     "support": "TP:2 FP:1 FN:9 TN:26 (Pos:11 Neg:27)",
     "params": 618209,
-    "train_time": 10.3
+    "train_time": 14.3
   },
   {
     "model": "ResNet_scratch",
@@ -21,7 +21,7 @@
     "val_f1": "0.0000\u00b10.0000",
     "support": "TP:0 FP:0 FN:11 TN:27 (Pos:11 Neg:27)",
     "params": 11173889,
-    "train_time": 24.6
+    "train_time": 54.7
   },
   {
     "model": "ResNet_pretrained",
@@ -33,6 +33,6 @@
     "val_f1": "0.0000\u00b10.0000",
     "support": "TP:0 FP:0 FN:11 TN:27 (Pos:11 Neg:27)",
     "params": 6067201,
-    "train_time": 12.0
+    "train_time": 45.3
   }
 ]
