@@ -1,22 +1,26 @@
 [
   {
     "model": "EarlyFusionCNN",
-    "accuracy": 1.0,
-    "precision": 0.0,
-    "recall": 0.0,
-    "f1": 0.0,
-    "roc_auc": NaN,
+    "accuracy": "0.4697\u00b10.0652",
+    "precision": "0.8918\u00b10.0782",
+    "recall": "0.2667\u00b10.1247",
+    "f1": "0.3888\u00b10.1526",
+    "roc_auc": "0.4294\u00b10.0464",
+    "val_f1": "0.0000\u00b10.0000",
+    "support": "TP:12 FP:2 FN:18 TN:12 (Pos:30 Neg:14)",
     "params": 618497,
-    "train_time": 15.0
+    "train_time": 11.2
   },
   {
     "model": "LateFusionResNet",
-    "accuracy": 1.0,
-    "precision": 0.0,
-    "recall": 0.0,
-    "f1": 0.0,
-    "roc_auc": NaN,
+    "accuracy": "0.4394\u00b10.1714",
+    "precision": "0.2273\u00b10.3214",
+    "recall": "0.3333\u00b10.4714",
+    "f1": "0.2703\u00b10.3822",
+    "roc_auc": "0.5270\u00b10.0522",
+    "val_f1": "0.0000\u00b10.0000",
+    "support": "TP:30 FP:14 FN:0 TN:0 (Pos:30 Neg:14)",
     "params": 22606273,
-    "train_time": 48.1
+    "train_time": 43.9
   }
 ]

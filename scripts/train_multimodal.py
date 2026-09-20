@@ -125,9 +125,26 @@ def train_mm_model(model, train_loader, val_loader, criterion, name):
 
 
 def main():
+    SEEDS = [42, 123, 2024]
+    
     train_ds = load_mm_split("train")
     val_ds   = load_mm_split("val")
     test_ds  = load_mm_split("test")
+
+    # Support checks
+    val_pos = sum(train_ds.labels) if hasattr(val_ds, 'labels') else sum(val_ds.labels) 
+    # Wait, in Multimodal dataset, labels are precomputed array. `sum(val_ds.labels)`
+    val_pos = sum(val_ds.labels)
+    test_pos = sum(test_ds.labels)
+    print(f"\nVal Positives: {val_pos}, Test Positives: {test_pos}")
+    
+    low_support_flag = ""
+    if val_pos < 10 or test_pos < 10:
+        low_support_flag = (
+            f"\n[WARNING] LOW SUPPORT -- METRICS ON THIS SPLIT ARE NOISY\n"
+            f"   Val Positives: {val_pos}, Test Positives: {test_pos}\n"
+        )
+        print(low_support_flag)
 
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=0)
     val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
@@ -136,53 +153,91 @@ def main():
     pos_weight_val = read_pos_weight()
     criterion      = select_loss(pos_weight_val)
 
-    model_defs = [
-        ("EarlyFusionCNN",   EarlyFusionCNN(dfsar_channels=2, ohrc_channels=1)),
-        ("LateFusionResNet", LateFusionResNet(dfsar_channels=2, ohrc_channels=1, pretrained=False)),
-    ]
+    def get_models():
+        return [
+            ("EarlyFusionCNN",   lambda: EarlyFusionCNN(dfsar_channels=2, ohrc_channels=1)),
+            ("LateFusionResNet", lambda: LateFusionResNet(dfsar_channels=2, ohrc_channels=1, pretrained=False)),
+        ]
 
     summary_rows = []
-    for name, model in model_defs:
-        model = model.to(DEVICE)
-        best_f1, tl, vl, tt, params = train_mm_model(
-            model, train_loader, val_loader, criterion, name
-        )
-        model.load_state_dict(torch.load(os.path.join(MODELS_DIR, f"{name}.pth"), map_location=DEVICE))
-        test_m = evaluate_mm(model, test_loader)
+    circularity_flags = []
+    if low_support_flag:
+        circularity_flags.append(low_support_flag)
 
-        flag_suspicious_metrics(test_m, name)
-        save_loss_curve(tl, vl, name)
-        save_confusion_matrix(test_m["cm"], name)
-        save_roc_curve(test_m["labels"], test_m["probs"], name)
+    for name, factory in get_models():
+        seed_results = []
+        for seed in SEEDS:
+            print(f"\n=== Training {name} (Seed {seed}) ===")
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+            model = factory().to(DEVICE)
+            
+            best_f1, tl, vl, tt, params = train_mm_model(
+                model, train_loader, val_loader, criterion, name
+            )
+            model.load_state_dict(torch.load(os.path.join(MODELS_DIR, f"{name}.pth"), map_location=DEVICE))
+            test_m = evaluate_mm(model, test_loader)
+            test_m["train_time"] = tt
+            test_m["val_f1"] = best_f1
+            seed_results.append(test_m)
+
+        # Aggregate across seeds
+        avg_acc = np.mean([r["accuracy"] for r in seed_results])
+        std_acc = np.std([r["accuracy"] for r in seed_results])
+        avg_prec = np.mean([r["precision"] for r in seed_results])
+        std_prec = np.std([r["precision"] for r in seed_results])
+        avg_rec = np.mean([r["recall"] for r in seed_results])
+        std_rec = np.std([r["recall"] for r in seed_results])
+        avg_f1 = np.mean([r["f1"] for r in seed_results])
+        std_f1 = np.std([r["f1"] for r in seed_results])
+        avg_auc = np.mean([r["roc_auc"] for r in seed_results])
+        std_auc = np.std([r["roc_auc"] for r in seed_results])
+        avg_val_f1 = np.mean([r["val_f1"] for r in seed_results])
+        std_val_f1 = np.std([r["val_f1"] for r in seed_results])
+        
+        cm = seed_results[-1]["cm"]
+        tn, fp, fn, tp = cm.ravel()
+        support_str = f"TP:{tp} FP:{fp} FN:{fn} TN:{tn} (Pos:{tp+fn} Neg:{tn+fp})"
+        
+        flag = flag_suspicious_metrics(seed_results[-1], name)
+        if flag:
+            circularity_flags.append(flag)
 
         row = {
             "model":      name,
-            "accuracy":   test_m["accuracy"],
-            "precision":  test_m["precision"],
-            "recall":     test_m["recall"],
-            "f1":         test_m["f1"],
-            "roc_auc":    test_m["roc_auc"],
+            "accuracy":    f"{avg_acc:.4f}±{std_acc:.4f}",
+            "precision":   f"{avg_prec:.4f}±{std_prec:.4f}",
+            "recall":      f"{avg_rec:.4f}±{std_rec:.4f}",
+            "f1":          f"{avg_f1:.4f}±{std_f1:.4f}",
+            "roc_auc":     f"{avg_auc:.4f}±{std_auc:.4f}",
+            "val_f1":      f"{avg_val_f1:.4f}±{std_val_f1:.4f}",
+            "support":     support_str,
             "params":     params,
-            "train_time": round(tt, 1),
+            "train_time": round(np.mean([r["train_time"] for r in seed_results]), 1),
         }
         summary_rows.append(row)
-        print(f"\n  Test metrics — {name}:")
+        print(f"\n  Test metrics (Mean±Std) -- {name}:")
         for k, v in row.items():
-            if k not in ("model", "params", "train_time"):
-                print(f"    {k:12s}: {v:.4f}")
+            if k not in ("model", "params", "train_time", "val_f1"):
+                print(f"    {k:12s}: {v}")
 
     md = (
         "# Multimodal Training Summary\n\n"
         "> **DATA SOURCE:** SYNTHETIC. See reports/data_notes.md.\n\n"
-        "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params | Time (s) |\n"
-        "|-------|----------|-----------|--------|----|---------|--------|----------|\n"
+        "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |\n"
+        "|-------|----------|-----------|--------|----|---------|---------|--------|----------|\n"
     )
     for r in summary_rows:
         md += (
-            f"| {r['model']} | {r['accuracy']:.4f} | {r['precision']:.4f} | "
-            f"{r['recall']:.4f} | {r['f1']:.4f} | {r['roc_auc']:.4f} | "
+            f"| {r['model']} | {r['accuracy']} | {r['precision']} | "
+            f"{r['recall']} | {r['f1']} | {r['roc_auc']} | {r['support']} | "
             f"{r['params']:,} | {r['train_time']} |\n"
         )
+    if circularity_flags:
+        md += "\n## [WARNING] Circularity / Low Support Flags\n\n"
+        for flag in list(set(circularity_flags)):
+            md += flag + "\n"
+
     with open(os.path.join(REPORTS_DIR, "training_summary_multimodal.md"), "w") as f:
         f.write(md)
 
@@ -192,7 +247,6 @@ def main():
     print(f"\nMultimodal results saved to {REPORTS_DIR}/")
     print("Block 3 training complete.")
     return summary_rows
-
 
 if __name__ == "__main__":
     main()

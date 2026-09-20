@@ -325,8 +325,9 @@ def flag_suspicious_metrics(metrics, name):
 # Main
 # ──────────────────────────────────────────────────────────────────────────────
 def main():
-    # 1. Load data
-    print("Loading processed splits from data/processed/ …")
+    SEEDS = [42, 123, 2024]
+    
+    print("Loading processed splits from data/processed/ ...")
     train_patches = load_split("train")
     val_patches   = load_split("val")
     test_patches  = load_split("test")
@@ -335,88 +336,123 @@ def main():
     val_ds   = IcePatchDataset(val_patches,   augment=False, normalize=True)
     test_ds  = IcePatchDataset(test_patches,  augment=False, normalize=True)
 
+    # Support checks
+    val_pos = sum(p[1] for p in val_ds.patches)
+    test_pos = sum(p[1] for p in test_ds.patches)
+    print(f"\nVal Positives: {val_pos}, Test Positives: {test_pos}")
+    
+    low_support_flag = ""
+    if val_pos < 10 or test_pos < 10:
+        low_support_flag = (
+            f"\n[WARNING] LOW SUPPORT -- METRICS ON THIS SPLIT ARE NOISY\n"
+            f"   Val Positives: {val_pos}, Test Positives: {test_pos}\n"
+        )
+        print(low_support_flag)
+
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=0)
     val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
     test_loader  = DataLoader(test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
 
-    # 2. Loss function
     pos_weight_val = read_pos_weight()
     criterion = select_loss(pos_weight_val)
 
-    # 3. Define model variants
-    in_channels = train_ds[0][0].shape[0]  # 2 for DFSAR-only
+    in_channels = train_ds.patches[0][0].shape[0]  # 2 for DFSAR-only
     print(f"\nDetected input channels: {in_channels}")
 
-    model_defs = [
-        ("CustomCNN",         CustomCNN(in_channels=in_channels, num_classes=1)),
-        ("ResNet_scratch",    IceResNet(in_channels=in_channels, num_classes=1, pretrained=False)),
-        ("ResNet_pretrained", IceResNet(in_channels=in_channels, num_classes=1, pretrained=True)),
-    ]
+    def get_models():
+        return [
+            ("CustomCNN",         lambda: CustomCNN(in_channels=in_channels, num_classes=1)),
+            ("ResNet_scratch",    lambda: IceResNet(in_channels=in_channels, num_classes=1, pretrained=False)),
+            ("ResNet_pretrained", lambda: IceResNet(in_channels=in_channels, num_classes=1, pretrained=True)),
+        ]
 
     summary_rows = []
     circularity_flags = []
+    if low_support_flag:
+        circularity_flags.append(low_support_flag)
 
-    # 4. Train each model
-    for name, model in model_defs:
-        model = model.to(DEVICE)
-        best_metrics, train_losses, val_losses, train_time, params = train_model(
-            model, train_loader, val_loader, criterion, name
-        )
+    for name, factory in get_models():
+        seed_results = []
+        for seed in SEEDS:
+            print(f"\n=== Training {name} (Seed {seed}) ===")
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+            model = factory().to(DEVICE)
+            
+            best_metrics, train_losses, val_losses, train_time, params = train_model(
+                model, train_loader, val_loader, criterion, name
+            )
 
-        # Reload best checkpoint and evaluate on test set
-        model.load_state_dict(torch.load(os.path.join(MODELS_DIR, f"{name}.pth"), map_location=DEVICE))
-        test_metrics = evaluate(model, test_loader)
+            model.load_state_dict(torch.load(os.path.join(MODELS_DIR, f"{name}.pth"), map_location=DEVICE))
+            test_metrics = evaluate(model, test_loader)
+            test_metrics["train_time"] = train_time
+            test_metrics["val_f1"] = best_metrics["f1"]
+            seed_results.append(test_metrics)
 
-        flag = flag_suspicious_metrics(test_metrics, name)
+        # Aggregate across seeds
+        avg_acc = np.mean([r["accuracy"] for r in seed_results])
+        std_acc = np.std([r["accuracy"] for r in seed_results])
+        avg_prec = np.mean([r["precision"] for r in seed_results])
+        std_prec = np.std([r["precision"] for r in seed_results])
+        avg_rec = np.mean([r["recall"] for r in seed_results])
+        std_rec = np.std([r["recall"] for r in seed_results])
+        avg_f1 = np.mean([r["f1"] for r in seed_results])
+        std_f1 = np.std([r["f1"] for r in seed_results])
+        avg_auc = np.mean([r["roc_auc"] for r in seed_results])
+        std_auc = np.std([r["roc_auc"] for r in seed_results])
+        avg_val_f1 = np.mean([r["val_f1"] for r in seed_results])
+        std_val_f1 = np.std([r["val_f1"] for r in seed_results])
+        
+        # Take the last seed's CM for raw support count
+        cm = seed_results[-1]["cm"]
+        tn, fp, fn, tp = cm.ravel()
+        support_str = f"TP:{tp} FP:{fp} FN:{fn} TN:{tn} (Pos:{tp+fn} Neg:{tn+fp})"
+        
+        flag = flag_suspicious_metrics(seed_results[-1], name)
         if flag:
             circularity_flags.append(flag)
 
-        # Save plots
-        save_loss_curve(train_losses, val_losses, name)
-        save_confusion_matrix(test_metrics["cm"], name)
-        save_roc_curve(test_metrics["labels"], test_metrics["probs"], name)
-
         row = {
             "model":       name,
-            "accuracy":    test_metrics["accuracy"],
-            "precision":   test_metrics["precision"],
-            "recall":      test_metrics["recall"],
-            "f1":          test_metrics["f1"],
-            "roc_auc":     test_metrics["roc_auc"],
+            "accuracy":    f"{avg_acc:.4f}±{std_acc:.4f}",
+            "precision":   f"{avg_prec:.4f}±{std_prec:.4f}",
+            "recall":      f"{avg_rec:.4f}±{std_rec:.4f}",
+            "f1":          f"{avg_f1:.4f}±{std_f1:.4f}",
+            "roc_auc":     f"{avg_auc:.4f}±{std_auc:.4f}",
+            "val_f1":      f"{avg_val_f1:.4f}±{std_val_f1:.4f}",
+            "support":     support_str,
             "params":      params,
-            "train_time":  round(train_time, 1),
+            "train_time":  round(np.mean([r["train_time"] for r in seed_results]), 1),
         }
         summary_rows.append(row)
 
-        print(f"\n  Test metrics — {name}:")
+        print(f"\n  Test metrics (Mean±Std) -- {name}:")
         for k, v in row.items():
-            if k not in ("model", "params", "train_time"):
-                print(f"    {k:12s}: {v:.4f}")
+            if k not in ("model", "params", "train_time", "val_f1"):
+                print(f"    {k:12s}: {v}")
         print(f"    params      : {params:,}")
-        print(f"    train_time  : {train_time:.1f}s")
 
-    # 5. Save summary
     with open(os.path.join(REPORTS_DIR, "training_summary.json"), "w") as f:
         json.dump(summary_rows, f, indent=2)
 
     summary_md = (
         "# Training Summary\n\n"
-        "> **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene — "
+        "> **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene -- "
         "no real DFSAR tiles from PRADAN yet). "
         "Numbers below demonstrate pipeline correctness only, "
         "NOT real ice-detection performance.\n\n"
-        "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params | Time (s) |\n"
-        "|-------|----------|-----------|--------|----|---------|--------|----------|\n"
+        "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |\n"
+        "|-------|----------|-----------|--------|----|---------|---------|--------|----------|\n"
     )
     for r in summary_rows:
         summary_md += (
-            f"| {r['model']} | {r['accuracy']:.4f} | {r['precision']:.4f} | "
-            f"{r['recall']:.4f} | {r['f1']:.4f} | {r['roc_auc']:.4f} | "
+            f"| {r['model']} | {r['accuracy']} | {r['precision']} | "
+            f"{r['recall']} | {r['f1']} | {r['roc_auc']} | {r['support']} | "
             f"{r['params']:,} | {r['train_time']} |\n"
         )
     if circularity_flags:
-        summary_md += "\n## [WARNING] Circularity / Near-Perfect Accuracy Flags\n\n"
-        for flag in circularity_flags:
+        summary_md += "\n## [WARNING] Circularity / Low Support Flags\n\n"
+        for flag in list(set(circularity_flags)):
             summary_md += flag + "\n"
 
     with open(os.path.join(REPORTS_DIR, "training_summary.md"), "w") as f:
@@ -424,7 +460,7 @@ def main():
 
     print(f"\nAll results saved to {REPORTS_DIR}/")
     print("Block 2 complete.")
-    return summary_rows   # so Block 3 can read them in-process if needed
+    return summary_rows
 
 
 if __name__ == "__main__":
