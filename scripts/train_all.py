@@ -54,7 +54,7 @@ os.makedirs(MODELS_DIR,  exist_ok=True)
 
 # ── Hyper-parameters ───────────────────────────────────────────────────────────
 BATCH_SIZE = 16
-EPOCHS     = 1          # bumped to 30 to allow convergence and prevent majority-class collapse on small datasets
+EPOCHS     = 30          # bumped to 30 to allow convergence and prevent majority-class collapse on small datasets
 LR         = 1e-3
 SEED       = 42
 DEVICE     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
