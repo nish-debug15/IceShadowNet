@@ -247,7 +247,18 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
      Does the heatmap concentrate on the known ice-candidate region?
      Or does it fire uniformly (suggesting threshold re-learning, not texture learning)? -->
 
-### 6.7 Analysis: Why Does One Model Outperform the Other?
+### 6.7 Observation: Train/Val vs Test Generalization Gap
+**⚠️ SYNTHETIC DATA — PLACEHOLDER**
+
+Because we explicitly prevent data leakage using a strict geographic **spatial block split** (see §3.6), the validation and test sets come from spatially distinct regions of the crater compared to the training set.
+
+This leads to a measurable generalization gap. For example, in our 30-epoch synthetic runs:
+* **CustomCNN**: Val-F1: ~0.26 vs Test-F1: ~0.19
+* *(Real numbers to be finalized in Block 4)*
+
+**Methodological Finding:** This gap is *expected and desirable*. Without a spatial split, a model could artificially inflate test performance by memorizing adjacent overlapping pixels from the training set. The observed drop in performance on the geographically disjoint test set reflects the *true* difficulty of out-of-distribution spatial generalization on radar textures.
+
+### 6.8 Analysis: Why Does One Model Outperform the Other?
 
 <!-- TODO (team): This is the core analytical section — required for viva.
      Address the following:
@@ -259,7 +270,7 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
         or modality redundancy.
      4. Any near-perfect accuracy? See §6.8 on circularity. -->
 
-### 6.8 ⚠️ Label Circularity Risk
+### 6.9 ⚠️ Label Circularity Risk
 
 **This section is mandatory in viva.**
 
