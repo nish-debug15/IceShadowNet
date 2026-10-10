@@ -35,6 +35,9 @@ os.makedirs(PROCESSED_DIR, exist_ok=True)
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--real', action='store_true', help='Force real data ingestion. Fail if only synthetic is available.')
+    args = parser.parse_args()
     np.random.seed(SEED)
 
     dfsar_path = None

@@ -18,6 +18,7 @@ Usage:
 
 import os
 import sys
+import argparse
 import warnings
 import numpy as np
 
@@ -62,6 +63,9 @@ def find_raw_files(raw_dir):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--real', action='store_true', help='Force real data ingestion. Fail if only synthetic is available.')
+    args = parser.parse_args()
     np.random.seed(SEED)
     raw_files = find_raw_files(RAW_DIR)
 
@@ -72,6 +76,9 @@ def main():
         dfsar = load_dfsar(dfsar_path if dfsar_path else "data/raw/DFSAR_PLACEHOLDER.img")
         is_synthetic = any("SYNTHETIC" in str(warning.message) for warning in w)
 
+    if is_synthetic and args.real:
+        print("FATAL: --real flag was provided, but real data is missing. Please download tiles to data/raw/.")
+        sys.exit(1)
     if is_synthetic:
         data_source = "SYNTHETIC (no real DFSAR tiles found in data/raw/)"
         print("[SYNTHETIC] No real DFSAR tiles — using physically-motivated synthetic scene.")

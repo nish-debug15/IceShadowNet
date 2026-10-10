@@ -1,13 +1,13 @@
-# Missing PRADAN Data
+# MISSING DATA
 
-The PDS4 DFSAR and OHRC tiles have not yet been downloaded to `data/raw/`.
+Real PDS4 DFSAR and OHRC tiles have not been downloaded yet.
 
-**What is missing:**
-- DFSAR dual-pol (HH/HV) SAR tiles (.IMG/.XML format)
-- OHRC high-resolution optical imagery corresponding to the same lunar craters.
+**To get the real data:**
+1. Register and log in to the ISRO PRADAN portal.
+2. Open the Map Browse / Data Search tool (chmapbrowse).
+3. Search for DFSAR data (instrument id: sar) and OHRC data (instrument id: ohr).
+4. Locate the target crater region (e.g. Haworth, Shoemaker, Faustini) based on coordinates.
+5. Download the .IMG and .XML files into data/raw/.
+6. Run python scripts/verify_real_tile.py data/raw/<filename>.IMG to verify they can be read.
 
-**Where to get it:**
-You must manually download the tiles from the ISRO PRADAN portal as outlined in the project README.md:
-- https://pradan.issdc.gov.in/pradan/
-
-Once downloaded, place the `.IMG` and `.XML` files directly into `data/raw/` and re-run the pipeline.
+**Note:** Until these files are present, the ingest scripts run in synthetic fallback mode unless the --real flag is provided.
