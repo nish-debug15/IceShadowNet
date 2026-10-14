@@ -62,15 +62,21 @@ Explainability (Grad-CAM)
 (Optional) Geospatial ice-probability map
 ```
 
-## 6. Results (Placeholder)
+## 6. Results
 
-| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Params |
-|---|---|---|---|---|---|---|
-| Custom CNN | TBD | TBD | TBD | TBD | TBD | TBD |
-| ResNet (Scratch) | TBD | TBD | TBD | TBD | TBD | TBD |
-| ResNet (Pretrained)| TBD | TBD | TBD | TBD | TBD | TBD |
+> **⚠️ SYNTHETIC DATA — PLACEHOLDER BENCHMARK**  
+> Demonstrates full end-to-end pipeline execution. Final real-world detection metrics await PRADAN tile download.  
+> **Trained for 30 epochs, 3 seeds, on SYNTHETIC data**
 
-*Note: The metrics above will be populated once real DFSAR/OHRC data is downloaded and the models are trained.*
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |
+|---|---|---|---|---|---|---|---|---|
+| CustomCNN | 0.7361±0.0196 | 0.4444±0.3143 | 0.1905±0.1347 | 0.2667±0.1886 | 0.6751±0.0555 | TP:2 FP:1 FN:5 TN:16 (Pos:7 Neg:17) | 618,209 | 76.0 |
+| ResNet (Scratch) | 0.8194±0.0393 | 0.7361±0.0856 | 0.6190±0.1347 | 0.6605±0.0915 | 0.8459±0.0914 | TP:3 FP:1 FN:4 TN:16 (Pos:7 Neg:17) | 11,173,889 | 151.1 |
+| ResNet (Pretrained) | 0.7778±0.0196 | 0.6488±0.0748 | 0.5714±0.1166 | 0.5945±0.0521 | 0.8403±0.0562 | TP:4 FP:3 FN:3 TN:14 (Pos:7 Neg:17) | 6,067,201 | 73.9 |
+| EarlyFusionCNN | 0.7222±0.0196 | 0.2222±0.3143 | 0.0952±0.1347 | 0.1333±0.1886 | 0.4594±0.0309 | TP:0 FP:0 FN:7 TN:17 (Pos:7 Neg:17) | 618,497 | 54.0 |
+| LateFusionResNet | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | TP:7 FP:0 FN:0 TN:17 (Pos:7 Neg:17) | 22,606,273 | 200.1 |
+
+*Note: The metrics above demonstrate pipeline correctness across multiple seeds and epochs. Real-world physical performance will be established once PRADAN tiles are ingested.*
 
 ## 7. Experiments
 

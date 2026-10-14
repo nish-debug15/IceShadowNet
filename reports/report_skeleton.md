@@ -200,23 +200,19 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 > **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene -- no real DFSAR tiles from PRADAN yet). Numbers below demonstrate pipeline correctness only, NOT real ice-detection performance.
 
+> **Trained for 30 epochs, 3 seeds, on SYNTHETIC data**
+
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |
 |-------|----------|-----------|--------|----|---------|---------|--------|----------|
-| CustomCNN | 0.7281±0.0124 | 0.4444±0.3143 | 0.1212±0.0857 | 0.1905±0.1347 | 0.4882±0.0225 | TP:2 FP:1 FN:9 TN:26 (Pos:11 Neg:27) | 618,209 | 14.3 |
-| ResNet_scratch | 0.7105±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.4820±0.0794 | TP:0 FP:0 FN:11 TN:27 (Pos:11 Neg:27) | 11,173,889 | 54.7 |
-| ResNet_pretrained | 0.7105±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.4355±0.0894 | TP:0 FP:0 FN:11 TN:27 (Pos:11 Neg:27) | 6,067,201 | 45.3 |
+| CustomCNN | 0.7361±0.0196 | 0.4444±0.3143 | 0.1905±0.1347 | 0.2667±0.1886 | 0.6751±0.0555 | TP:2 FP:1 FN:5 TN:16 (Pos:7 Neg:17) | 618,209 | 76.0 |
+| ResNet_scratch | 0.8194±0.0393 | 0.7361±0.0856 | 0.6190±0.1347 | 0.6605±0.0915 | 0.8459±0.0914 | TP:3 FP:1 FN:4 TN:16 (Pos:7 Neg:17) | 11,173,889 | 151.1 |
+| ResNet_pretrained | 0.7778±0.0196 | 0.6488±0.0748 | 0.5714±0.1166 | 0.5945±0.0521 | 0.8403±0.0562 | TP:4 FP:3 FN:3 TN:14 (Pos:7 Neg:17) | 6,067,201 | 73.9 |
 
 ## [WARNING] Circularity / Low Support Flags
 
 
-[WARNING] MAJORITY-CLASS COLLAPSE: ResNet_scratch
-   accuracy=0.711, Precision=0.000, Recall=0.000
-   The model failed to learn the minority class and is predicting a single class for everything.
-
-
-[WARNING] MAJORITY-CLASS COLLAPSE: ResNet_pretrained
-   accuracy=0.711, Precision=0.000, Recall=0.000
-   The model failed to learn the minority class and is predicting a single class for everything.
+[WARNING] LOW SUPPORT -- METRICS ON THIS SPLIT ARE NOISY
+   Val Positives: 6, Test Positives: 7
 
 
 ### 6.2 Multimodal Models (DFSAR + OHRC)
@@ -227,16 +223,33 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 > **DATA SOURCE:** SYNTHETIC. See reports/data_notes.md.
 
+> **Trained for 30 epochs, 3 seeds, on SYNTHETIC data**
+
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |
 |-------|----------|-----------|--------|----|---------|---------|--------|----------|
-| EarlyFusionCNN | 0.4697±0.0652 | 0.8918±0.0782 | 0.2667±0.1247 | 0.3888±0.1526 | 0.4294±0.0464 | TP:12 FP:2 FN:18 TN:12 (Pos:30 Neg:14) | 618,497 | 11.2 |
-| LateFusionResNet | 0.4394±0.1714 | 0.2273±0.3214 | 0.3333±0.4714 | 0.2703±0.3822 | 0.5270±0.0522 | TP:30 FP:14 FN:0 TN:0 (Pos:30 Neg:14) | 22,606,273 | 43.9 |
+| EarlyFusionCNN | 0.7222±0.0196 | 0.2222±0.3143 | 0.0952±0.1347 | 0.1333±0.1886 | 0.4594±0.0309 | TP:0 FP:0 FN:7 TN:17 (Pos:7 Neg:17) | 618,497 | 54.0 |
+| LateFusionResNet | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | TP:7 FP:0 FN:0 TN:17 (Pos:7 Neg:17) | 22,606,273 | 200.1 |
 
 ## [WARNING] Circularity / Low Support Flags
 
 
 [WARNING] LOW SUPPORT -- METRICS ON THIS SPLIT ARE NOISY
-   Val Positives: 0.0, Test Positives: 30.0
+   Val Positives: 6.0, Test Positives: 7.0
+
+
+[WARNING] SUSPICIOUS PERFORMANCE: LateFusionResNet
+   accuracy=1.000, F1=1.000
+   This may indicate label circularity: the model could be
+   re-learning the CPR>1 AND DOP<0.13 threshold rule rather
+   than learning spatial/textural features.
+   -> Inspect Grad-CAM (Block 3) and check if attention focuses
+     on physically plausible spatial structures beyond single pixels.
+   -> Report this limitation explicitly in viva and report.
+
+
+[WARNING] MAJORITY-CLASS COLLAPSE: EarlyFusionCNN
+   accuracy=0.708, Precision=0.000, Recall=0.000
+   The model failed to learn the minority class and is predicting a single class for everything.
 
 
 ### 6.3 Loss Curves
@@ -268,9 +281,12 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 Because we explicitly prevent data leakage using a strict geographic **spatial block split** (see §3.6), the validation and test sets come from spatially distinct regions of the crater compared to the training set.
 
-This leads to a measurable generalization gap. For example, in our 30-epoch synthetic runs:
-* **CustomCNN**: Val-F1: ~0.26 vs Test-F1: ~0.19
-* *(Real numbers to be finalized in Block 4)*
+This leads to a measurable generalization gap. In our 30-epoch synthetic runs across 3 seeds:
+* **CustomCNN**: Val-F1: 0.8111±0.0157 vs Test-F1: 0.2667±0.1886
+* **ResNet_scratch**: Val-F1: 0.9030±0.0818 vs Test-F1: 0.6605±0.0915
+* **ResNet_pretrained**: Val-F1: 0.8727±0.0514 vs Test-F1: 0.5945±0.0521
+* **EarlyFusionCNN**: Val-F1: 0.8000±0.0000 vs Test-F1: 0.1333±0.1886
+* **LateFusionResNet**: Val-F1: 1.0000±0.0000 vs Test-F1: 1.0000±0.0000 (Circular risk flagged)
 
 **Methodological Finding:** This gap is *expected and desirable*. Without a spatial split, a model could artificially inflate test performance by memorizing adjacent overlapping pixels from the training set. The observed drop in performance on the geographically disjoint test set reflects the *true* difficulty of out-of-distribution spatial generalization on radar textures.
 
