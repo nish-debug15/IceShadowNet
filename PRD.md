@@ -98,14 +98,21 @@ This is scoped as a course Deep Learning project, not a reproduction of the full
 
 ## 11. Risks
 
-| Risk | Mitigation | Empirical Status (updated 2026-09-18) |
+### 11.1 Confirmed Risks
+
+| Risk | Mitigation | Empirical Status (updated 2026-10-10) |
 |---|---|---|
-| Data access delay (admin-gated permissions on PRADAN) | Register and request access on day 1; contact ISSDC admin immediately if gated | **CONFIRMED — NOT RESOLVED.** No tiles downloaded. Pipeline runs on synthetic data (4 craters scattered). `data/raw/` contains `MISSING_DATA.md` documenting the gap. All metrics are synthetic-data only. |
-| Label circularity (CNN just re-learns the threshold rule) | Explicitly frame contribution as spatial/textural generalization beyond pixel-wise thresholding; address directly in report/viva | **REMAINS OPEN PENDING REAL DATA.** Pipeline robustness is proven, but circularity cannot be fully assessed until real spatially-textured SAR data is tested. |
+| Data access delay (admin-gated permissions on PRADAN) | Register and request access on day 1; contact ISSDC admin immediately if gated | **CONFIRMED - NOT RESOLVED.** No tiles downloaded. Pipeline runs on synthetic data. data/raw/ contains MISSING_DATA.md. |
 | Small dataset (single crater) | Spatial-block split, heavy augmentation, report this as a limitation | **CONFIRMED AS LIMITATION.** Synthetic scene is single-scene. Spatial block split (8x8 grid) verified with hard Python asserts against zero-positive splits. |
-| Class imbalance | Weighted loss / focal loss / oversampling; report F1 & ROC-AUC, not accuracy alone | **MITIGATED IN PIPELINE — OPEN PENDING REAL DATA.** The pipeline successfully dynamically balances loss (using BCE pos_weight) and avoids majority-class collapse across 30 epochs on synthetic data. Final validation awaits real PRADAN tile class distribution. |
-| ResNet/ImageNet domain mismatch | Test both scratch-trained and adapted-pretrained ResNet; justify choice in report | **TESTED — RESULTS PENDING REAL DATA.** Both scratch and pretrained variants run flawlessly over multiple seeds. Final domain mismatch impact awaits real data. |
-| Scope creep back toward full ISRO hackathon problem | Keep rover path/ice-volume/landing-site work explicitly optional/future-work only | **CONFIRMED CONTROLLED.** Rover path, ice volume, landing-site scoring remain deferred to PRD §13 (Future Scope). |
+| Scope creep back toward full ISRO hackathon problem | Keep rover path/ice-volume/landing-site work explicitly optional/future-work only | **CONFIRMED CONTROLLED.** Rover path, ice volume, landing-site scoring remain deferred to PRD Section 13 (Future Scope). |
+
+### 11.2 Risks Open Pending Real Data
+
+| Risk | Mitigation | Empirical Status |
+|---|---|---|
+| Label circularity (CNN just re-learns the threshold rule) | Explicitly frame contribution as spatial/textural generalization beyond pixel-wise thresholding; address directly in report/viva | **REMAINS OPEN PENDING REAL DATA.** Pipeline robustness is proven, but circularity cannot be fully assessed until real spatially-textured SAR data is tested. |
+| Class imbalance | Weighted loss / focal loss / oversampling; report F1 & ROC-AUC, not accuracy alone | **MITIGATED IN PIPELINE - OPEN PENDING REAL DATA.** The pipeline dynamically balances loss (using BCE pos_weight) and avoids majority-class collapse across 30 epochs on synthetic data. Final validation awaits real PRADAN tile class distribution. |
+| ResNet/ImageNet domain mismatch | Test both scratch-trained and adapted-pretrained ResNet; justify choice in report | **TESTED - RESULTS PENDING REAL DATA.** Both scratch and pretrained variants run flawlessly. Final domain mismatch impact awaits real data. |
 
 ## 12. Success Criteria
 

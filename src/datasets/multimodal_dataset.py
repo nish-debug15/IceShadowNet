@@ -18,11 +18,15 @@ class MultimodalIceDataset(Dataset):
         (dfsar_tensor, ohrc_tensor, label_tensor)
     """
 
-    def __init__(self, npz_path: str, augment: bool = False, normalize: bool = True):
+    def __init__(self, npz_path: str, augment: bool = False, normalize: bool = True, indices=None):
         data = np.load(npz_path)
         self.dfsar   = data["images_dfsar"].astype(np.float32)  # (N, 2, H, W)
         self.ohrc    = data["images_ohrc"].astype(np.float32)   # (N, 1, H, W)
         self.labels  = data["labels"].astype(np.float32)
+        if indices is not None:
+            self.dfsar   = self.dfsar[indices]
+            self.ohrc    = self.ohrc[indices]
+            self.labels  = self.labels[indices]
         self.augment    = augment
         self.normalize  = normalize
 

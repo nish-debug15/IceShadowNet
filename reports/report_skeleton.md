@@ -331,3 +331,14 @@ of physically confirmed ice detection.
 4. Selvaraju et al. (2017). "Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization." *ICCV.*
 5. Lin et al. (2017). "Focal Loss for Dense Object Detection." *ICCV.*
 6. Nozette et al. (1996). "The Clementine Bistatic Radar Experiment." *Science.*
+
+## 9. Individual Contribution
+
+| Team Member | Role | Key Contributions |
+|-------------|------|-------------------|
+| Member 1 | Data & Labeling | Data acquisition (PRADAN), CPR/DOP labeling pipeline, spatial split logic |
+| Member 2 | Custom CNN | Architecture, training loop, tuning |
+| Member 3 | ResNet | Input adaptation, scratch-vs-pretrained decision, training |
+| Member 4 | Evaluation & Explainability | All metrics, confusion matrix, Grad-CAM |
+| Member 5 | Integration & Report | Pipeline glue, optional geospatial map, report + demo assembly |
+

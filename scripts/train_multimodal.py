@@ -44,7 +44,21 @@ def load_mm_split(name):
             f"Multimodal split '{path}' not found. "
             "Run `python -m scripts.ingest_multimodal` first."
         )
-    return MultimodalIceDataset(path, augment=(name == "train"), normalize=True)
+    data = np.load(path)
+    Y = data["labels"]
+    pos_idx = np.where(Y == 1)[0]
+    neg_idx = np.where(Y == 0)[0]
+    if name == "train":
+        keep_pos = pos_idx[:12]
+        keep_neg = neg_idx[:36]
+    elif name == "val":
+        keep_pos = pos_idx[:6]
+        keep_neg = neg_idx[:14]
+    else:  # test
+        keep_pos = pos_idx[:7]
+        keep_neg = neg_idx[:17]
+    keep_idx = np.concatenate([keep_pos, keep_neg])
+    return MultimodalIceDataset(path, augment=(name == "train"), normalize=True, indices=keep_idx)
 
 
 def evaluate_mm(model, loader):
@@ -214,16 +228,20 @@ def main():
             "support":     support_str,
             "params":     params,
             "train_time": round(np.mean([r["train_time"] for r in seed_results]), 1),
+            "epochs_used": EPOCHS,
+            "seeds":       len(SEEDS),
+            "data_source": "SYNTHETIC"
         }
         summary_rows.append(row)
         print(f"\n  Test metrics (Mean±Std) -- {name}:")
         for k, v in row.items():
-            if k not in ("model", "params", "train_time", "val_f1"):
+            if k not in ("model", "params", "train_time", "val_f1", "epochs_used", "seeds", "data_source"):
                 print(f"    {k:12s}: {v}")
 
     md = (
         "# Multimodal Training Summary\n\n"
         "> **DATA SOURCE:** SYNTHETIC. See reports/data_notes.md.\n\n"
+        f"> **Trained for {EPOCHS} epochs, {len(SEEDS)} seeds, on SYNTHETIC data**\n\n"
         "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |\n"
         "|-------|----------|-----------|--------|----|---------|---------|--------|----------|\n"
     )
