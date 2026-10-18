@@ -28,3 +28,20 @@ paths:
   models_dir: "models"
   reports_dir: "reports"
   gradcam_dir: "reports/gradcam"
+
+# Real Chandrayaan-2 DFSAR L1A configuration
+real_dfsar:
+  raw_dir: "data/raw/sar_nxcl"
+  processed_dir: "data/processed_real"
+  reports_dir: "reports/real"
+  models_dir: "models_real"
+  patch_size: 64          # Spatial patch size (HxW) to fit within 116-pixel swath
+  stride: 32              # Sliding window stride along and across track
+  grid_size: [1, 20]      # Spatial block split grid (y_bins, x_bins) along-track
+  multilook_window: 7     # Boxcar averaging window for complex polarimetry
+  cpr_threshold: 1.0      # CPR > 1.0 threshold for anomalous volume scattering
+  dop_threshold: 0.13     # DOP < 0.13 threshold for depolarized return
+  min_positive_pixels: 5  # Minimum CPR>1 & DOP<0.13 pixels in patch for positive label (y=1)
+  patch_label_fraction: 0.0012 # Equivalent to >= 5 pixels in 64x64 patch (~0.12%)
+  input_channels: ["hh", "hv", "vv"] # Raw radar log-intensities only (no derived CPR/DOP)
+

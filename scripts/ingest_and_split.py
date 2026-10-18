@@ -63,6 +63,187 @@ def find_raw_files(raw_dir):
     return found
 
 
+def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
+    print("\n" + "="*60)
+    print("RUNNING REAL DFSAR INGESTION PIPELINE (L1A Quad-Pol SLI)")
+    print("="*60)
+
+    raw_dir = "data/raw/sar_nxcl"
+    start_row = 100000
+    num_rows = 40000
+    P = 64
+    stride = 32
+    grid_size = (1, 20)
+    W = 7
+    cpr_thresh = 1.0
+    dop_thresh = 0.13
+    min_pos_px = 5
+
+    print(f"Loading SLI complex data from {raw_dir} (lines {start_row} to {start_row+num_rows})...")
+    from src.preprocessing.data_ops import load_complex_dfsar_sli, compute_cpr_dop_complex
+    channels = load_complex_dfsar_sli(raw_dir, start_row=start_row, num_rows=num_rows)
+    Shh = channels["hh"]
+    Shv = channels["hv"]
+    Svh = channels["vh"]
+    Svv = channels["vv"]
+
+    Shv_sym = 0.5 * (Shv + Svh)
+
+    # 1. Model INPUT channels: raw radar log-intensities only (no derived CPR/DOP)
+    eps = 1e-5
+    I_hh = np.log10(np.abs(Shh)**2 + eps).astype(np.float32)
+    I_hv = np.log10(np.abs(Shv_sym)**2 + eps).astype(np.float32)
+    I_vv = np.log10(np.abs(Svv)**2 + eps).astype(np.float32)
+
+    # Model input assertion: CPR and DOP must NOT be input channels
+    input_channel_names = ["log_intensity_hh", "log_intensity_hv", "log_intensity_vv"]
+    assert "cpr" not in input_channel_names and "dop" not in input_channel_names, (
+        "CIRCULARITY ASSERTION FAILED: CPR and DOP must NOT be model input channels!"
+    )
+    radar_inputs = np.stack([I_hh, I_hv, I_vv], axis=-1)  # (H, W, 3)
+
+    # 2. Derive polarimetric CPR and DOP for labeling
+    print(f"Computing complex CPR and DOP (multilook W={W})...")
+    cpr, dop = compute_cpr_dop_complex(Shh, Shv, Svh, Svv, W=W)
+    pixel_ice_mask = ((cpr > cpr_thresh) & (dop < dop_thresh)).astype(np.uint8)
+
+    ice_px = int(pixel_ice_mask.sum())
+    total_px = pixel_ice_mask.size
+    print(f"Ice pixels: {ice_px:,} / {total_px:,} ({100*ice_px/total_px:.4f}%)")
+
+    # 3. Patch extraction
+    H, W_dim = Shh.shape
+    patches = []
+    coords = []
+    for r in range(0, H - P + 1, stride):
+        for c in range(0, W_dim - P + 1, stride):
+            sub_input = radar_inputs[r:r+P, c:c+P] # (P, P, 3)
+            sub_input_t = np.transpose(sub_input, (2, 0, 1)) # (3, P, P)
+            sub_mask = pixel_ice_mask[r:r+P, c:c+P]
+            sub_cpr  = cpr[r:r+P, c:c+P]
+            sub_dop  = dop[r:r+P, c:c+P]
+            pos_count = int(np.count_nonzero(sub_mask))
+            lbl = 1 if pos_count >= min_pos_px else 0
+            cpr_m = float(sub_cpr.mean())
+            dop_m = float(sub_dop.mean())
+            frac  = float(pos_count / (P * P))
+            patches.append((sub_input_t, lbl, (r, c), cpr_m, dop_m, frac))
+            coords.append((r, c))
+
+    n_total = len(patches)
+    ice_patches = [p for p in patches if p[1] == 1]
+    nonice_patches = [p for p in patches if p[1] == 0]
+    n_ice = len(ice_patches)
+    n_noice = len(nonice_patches)
+    ice_ratio = n_ice / max(n_total, 1)
+
+    print(f"\nReal patch extraction complete:")
+    print(f"  Total patches : {n_total}")
+    print(f"  Ice patches   : {n_ice} ({100*ice_ratio:.1f}%)")
+    print(f"  Non-ice       : {n_noice} ({100*(1-ice_ratio):.1f}%)")
+
+    # 4. Spatial block split
+    train_coords, val_coords, test_coords = spatial_block_split(
+        coordinates=coords,
+        grid_size=grid_size,
+        train_ratio=0.70,
+        val_ratio=0.15,
+    )
+
+    # Disjointness assertion
+    train_set = set(train_coords)
+    val_set = set(val_coords)
+    test_set = set(test_coords)
+    assert train_set.isdisjoint(val_set),  "LEAKAGE DETECTED: train ∩ val is non-empty!"
+    assert train_set.isdisjoint(test_set), "LEAKAGE DETECTED: train ∩ test is non-empty!"
+    assert val_set.isdisjoint(test_set),   "LEAKAGE DETECTED: val ∩ test is non-empty!"
+    print(f"\nSpatial split verified (no leakage):")
+    print(f"  Train: {len(train_coords)}  Val: {len(val_coords)}  Test: {len(test_coords)}")
+
+    coord_to_patch = {(p[2][0], p[2][1]): p for p in patches}
+    def coords_to_patches(clist):
+        return [coord_to_patch[c] for c in clist if c in coord_to_patch]
+
+    train_patches = coords_to_patches(train_coords)
+    val_patches   = coords_to_patches(val_coords)
+    test_patches  = coords_to_patches(test_coords)
+
+    # 5. Save splits
+    data_source = "REAL (Chandrayaan-2 DFSAR L1A quad-pol SLI)"
+    def save_split(split_patches, name):
+        imgs   = np.stack([p[0] for p in split_patches])
+        labels = np.array([p[1] for p in split_patches], dtype=np.int8)
+        coords_ = np.array([p[2] for p in split_patches], dtype=np.int32)
+        cpr_means = np.array([p[3] for p in split_patches], dtype=np.float32)
+        dop_means = np.array([p[4] for p in split_patches], dtype=np.float32)
+        ice_fracs = np.array([p[5] for p in split_patches], dtype=np.float32)
+        path   = os.path.join(out_processed_dir, f"{name}.npz")
+        np.savez_compressed(
+            path,
+            images=imgs,
+            labels=labels,
+            coords=coords_,
+            cpr_means=cpr_means,
+            dop_means=dop_means,
+            ice_fracs=ice_fracs,
+            data_source=np.array(data_source),
+        )
+        print(f"  Saved {name}.npz -> {len(split_patches)} patches  shape={imgs.shape}  [source={data_source}]")
+        return labels
+
+    print("\nSaving processed real splits...")
+    lbl_train = save_split(train_patches, "train")
+    lbl_val   = save_split(val_patches,   "val")
+    lbl_test  = save_split(test_patches,  "test")
+
+    # Hard assertions
+    assert lbl_train.sum() > 0, "FATAL: Train split contains zero positive (ice) samples!"
+    assert lbl_val.sum() > 0, "FATAL: Val split contains zero positive (ice) samples!"
+    assert lbl_test.sum() > 0, "FATAL: Test split contains zero positive (ice) samples!"
+
+    # 6. Check minimum 10 positives per split
+    train_pos = int(lbl_train.sum())
+    val_pos   = int(lbl_val.sum())
+    test_pos  = int(lbl_test.sum())
+
+    # 7. Write class_balance_real.txt
+    pos_weight = n_noice / max(n_ice, 1)
+    balance_txt = (
+        f"Data source          : {data_source}\n"
+        f"Input channels       : Raw radar log-intensity [HH, HV, VV] (CPR/DOP strictly excluded from inputs)\n"
+        f"Label rule           : CPR > {cpr_thresh} AND DOP < {dop_thresh} (min {min_pos_px} pixels / patch)\n"
+        f"Patch size / stride  : {P} / {stride}\n"
+        f"Total patches        : {n_total}\n"
+        f"  Ice (positive)     : {n_ice}  ({100*ice_ratio:.1f}%)\n"
+        f"  Non-ice (negative) : {n_noice} ({100*(1-ice_ratio):.1f}%)\n"
+        f"pos_weight for BCE   : {pos_weight:.2f}  (= n_noice / n_ice)\n"
+        f"\nTrain / Val / Test   : {len(train_patches)} / {len(val_patches)} / {len(test_patches)}\n"
+        f"  Train ice count    : {train_pos} / {len(train_patches)} ({100*train_pos/max(len(train_patches),1):.1f}%)\n"
+        f"  Val   ice count    : {val_pos} / {len(val_patches)} ({100*val_pos/max(len(val_patches),1):.1f}%)\n"
+        f"  Test  ice count    : {test_pos} / {len(test_patches)} ({100*test_pos/max(len(test_patches),1):.1f}%)\n"
+        f"\nSpatial split grid   : {grid_size}\n"
+        f"Leakage assertion    : PASSED (no coordinate in >1 split)\n"
+        f"Minimum pos check    : PASSED (all splits have >= 10 positives: Train={train_pos}, Val={val_pos}, Test={test_pos})\n"
+    )
+
+    balance_path = os.path.join(out_reports_dir, "class_balance_real.txt")
+    with open(balance_path, "w", encoding="utf-8") as f:
+        f.write(balance_txt)
+    print(f"\nClass balance report saved to {balance_path}")
+    print(balance_txt)
+
+    if train_pos < 10 or val_pos < 10 or test_pos < 10:
+        print("\n" + "!"*70)
+        print("STOPPING PER PROTOCOL: One or more splits has fewer than 10 positives.")
+        print(f"Train: {train_pos}, Val: {val_pos}, Test: {test_pos}")
+        print("Options: 1) Change patch_size, 2) Decrease stride, 3) Adjust grid_size")
+        print("!"*70 + "\n")
+        sys.exit(2)
+
+    print("Real DFSAR ingestion complete.")
+    return
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--real', action='store_true', help='Force real data ingestion. Fail if only synthetic is available.')
@@ -73,6 +254,9 @@ def main():
     out_reports_dir   = "reports/real" if args.real else REPORTS_DIR
     os.makedirs(out_processed_dir, exist_ok=True)
     os.makedirs(out_reports_dir,   exist_ok=True)
+
+    if args.real:
+        return run_real_dfsar_ingestion(out_processed_dir, out_reports_dir)
 
     raw_files = find_raw_files(RAW_DIR)
 

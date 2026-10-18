@@ -1,0 +1,17 @@
+Data source          : REAL (Chandrayaan-2 DFSAR L1A quad-pol SLI)
+Input channels       : Raw radar log-intensity [HH, HV, VV] (CPR/DOP strictly excluded from inputs)
+Label rule           : CPR > 1.0 AND DOP < 0.13 (min 5 pixels / patch)
+Patch size / stride  : 64 / 32
+Total patches        : 2498
+  Ice (positive)     : 585  (23.4%)
+  Non-ice (negative) : 1913 (76.6%)
+pos_weight for BCE   : 3.27  (= n_noice / n_ice)
+
+Train / Val / Test   : 1746 / 378 / 374
+  Train ice count    : 389 / 1746 (22.3%)
+  Val   ice count    : 86 / 378 (22.8%)
+  Test  ice count    : 110 / 374 (29.4%)
+
+Spatial split grid   : (1, 20)
+Leakage assertion    : PASSED (no coordinate in >1 split)
+Minimum pos check    : PASSED (all splits have >= 10 positives: Train=389, Val=86, Test=110)
