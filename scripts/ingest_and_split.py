@@ -49,16 +49,17 @@ os.makedirs(REPORTS_DIR,   exist_ok=True)
 
 
 def find_raw_files(raw_dir):
-    """Scan data/raw/ for .IMG, .img, .tif, .tiff files."""
+    """Scan data/raw/ recursively for .IMG, .img, .tif, .tiff files."""
     exts = {".img", ".tif", ".tiff"}
     found = {}
     if not os.path.isdir(raw_dir):
         return found
-    for f in os.listdir(raw_dir):
-        lower = f.lower()
-        if any(lower.endswith(e) for e in exts):
-            key = "dfsar" if "dfsar" in lower or "sar" in lower else "ohrc"
-            found.setdefault(key, []).append(os.path.join(raw_dir, f))
+    for root, dirs, files in os.walk(raw_dir):
+        for f in files:
+            lower = f.lower()
+            if any(lower.endswith(e) for e in exts):
+                key = "dfsar" if "dfsar" in lower or "sar" in lower else "ohrc"
+                found.setdefault(key, []).append(os.path.join(root, f))
     return found
 
 
@@ -67,6 +68,12 @@ def main():
     parser.add_argument('--real', action='store_true', help='Force real data ingestion. Fail if only synthetic is available.')
     args = parser.parse_args()
     np.random.seed(SEED)
+
+    out_processed_dir = "data/processed_real" if args.real else PROCESSED_DIR
+    out_reports_dir   = "reports/real" if args.real else REPORTS_DIR
+    os.makedirs(out_processed_dir, exist_ok=True)
+    os.makedirs(out_reports_dir,   exist_ok=True)
+
     raw_files = find_raw_files(RAW_DIR)
 
     # ── 1. Load DFSAR ─────────────────────────────────────────────────────────
@@ -154,9 +161,15 @@ def main():
         imgs   = np.stack([p[0] for p in patches])
         labels = np.array([p[1] for p in patches], dtype=np.int8)
         coords_ = np.array([p[2] for p in patches], dtype=np.int32)
-        path   = os.path.join(PROCESSED_DIR, f"{name}.npz")
-        np.savez_compressed(path, images=imgs, labels=labels, coords=coords_)
-        print(f"  Saved {name}.npz -> {len(patches)} patches  shape={imgs.shape}")
+        path   = os.path.join(out_processed_dir, f"{name}.npz")
+        np.savez_compressed(
+            path,
+            images=imgs,
+            labels=labels,
+            coords=coords_,
+            data_source=np.array(data_source),
+        )
+        print(f"  Saved {name}.npz -> {len(patches)} patches  shape={imgs.shape}  [source={data_source}]")
         return labels
 
     print("\nSaving processed splits...")
@@ -189,7 +202,8 @@ def main():
         f"  Focal loss is also viable given strong imbalance if ice_ratio < 0.15\n"
     )
 
-    balance_path = os.path.join(REPORTS_DIR, "class_balance.txt")
+    balance_filename = "class_balance_real.txt" if args.real else "class_balance.txt"
+    balance_path = os.path.join(out_reports_dir, balance_filename)
     with open(balance_path, "w", encoding="utf-8") as f:
         f.write(balance_txt)
     print(f"\nClass balance report saved to {balance_path}")

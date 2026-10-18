@@ -25,7 +25,7 @@ Usage:
     python -m scripts.train_all
 """
 
-import os, sys, time, json
+import os, sys, time, json, argparse
 import numpy as np
 import torch
 import torch.nn as nn
@@ -141,11 +141,13 @@ def load_split(name):
     return patches
 
 
-def read_pos_weight() -> float:
+def read_pos_weight(balance_filename: str = "class_balance.txt") -> float:
     """Parse pos_weight from the class_balance.txt report."""
-    path = os.path.join(REPORTS_DIR, "class_balance.txt")
+    path = os.path.join(REPORTS_DIR, balance_filename)
     if not os.path.isfile(path):
-        print("  WARNING: class_balance.txt not found, defaulting pos_weight=5.0")
+        path = os.path.join(REPORTS_DIR, "class_balance_real.txt") if balance_filename == "class_balance.txt" else os.path.join(REPORTS_DIR, "class_balance.txt")
+    if not os.path.isfile(path):
+        print(f"  WARNING: {balance_filename} not found, defaulting pos_weight=5.0")
         return 5.0
     with open(path) as f:
         for line in f:
@@ -349,10 +351,33 @@ def flag_suspicious_metrics(metrics, name, pos_samples=None):
 # ──────────────────────────────────────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────────────────────────────────────
-def main():
-    SEEDS = [42, 123, 2024]
+def main(args=None):
+    global PROCESSED_DIR, REPORTS_DIR, MODELS_DIR
+
+    if args is None:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--real', action='store_true', help='Use real data directories (processed_real, models_real, reports/real).')
+        parser.add_argument('--epochs', type=int, default=EPOCHS, help='Number of epochs.')
+        parser.add_argument('--seeds', type=int, nargs='+', default=[42, 123, 2024], help='Random seeds.')
+        args, _ = parser.parse_known_args()
+
+    epochs_used = getattr(args, 'epochs', EPOCHS)
+    SEEDS = getattr(args, 'seeds', [42, 123, 2024])
+    is_real = getattr(args, 'real', False)
+
+    if is_real:
+        PROCESSED_DIR = "data/processed_real"
+        REPORTS_DIR   = "reports/real"
+        MODELS_DIR    = "models_real"
+        data_source   = "REAL"
+    else:
+        data_source   = "SYNTHETIC"
+
+    os.makedirs(PROCESSED_DIR, exist_ok=True)
+    os.makedirs(REPORTS_DIR,   exist_ok=True)
+    os.makedirs(MODELS_DIR,    exist_ok=True)
     
-    print("Loading processed splits from data/processed/ ...")
+    print(f"Loading processed splits from {PROCESSED_DIR}/ [source={data_source}] ...")
     train_patches = load_split("train")
     val_patches   = load_split("val")
     test_patches  = load_split("test")
@@ -378,7 +403,8 @@ def main():
     val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
     test_loader  = DataLoader(test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
 
-    pos_weight_val = read_pos_weight()
+    balance_filename = "class_balance_real.txt" if is_real else "class_balance.txt"
+    pos_weight_val = read_pos_weight(balance_filename)
     criterion = select_loss(pos_weight_val)
 
     in_channels = train_ds.patches[0][0].shape[0]  # 2 for DFSAR-only
@@ -448,9 +474,9 @@ def main():
             "support":     support_str,
             "params":      params,
             "train_time":  round(np.mean([r["train_time"] for r in seed_results]), 1),
-            "epochs_used": EPOCHS,
+            "epochs_used": epochs_used,
             "seeds":       len(SEEDS),
-            "data_source": "SYNTHETIC"
+            "data_source": data_source
         }
         summary_rows.append(row)
 
@@ -465,13 +491,11 @@ def main():
 
     summary_md = (
         "# Training Summary\n\n"
-        "> **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene -- "
-        "no real DFSAR tiles from PRADAN yet). "
-        "Numbers below demonstrate pipeline correctness only, "
-        "NOT real ice-detection performance.\n\n"
-        f"> **Trained for {EPOCHS} epochs, {len(SEEDS)} seeds, on SYNTHETIC data**\n\n"
-        "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |\n"
-        "|-------|----------|-----------|--------|----|---------|---------|--------|----------|\n"
+        f"> **DATA SOURCE:** {data_source} "
+        + ("(physically-motivated SAR scene -- numbers demonstrate pipeline correctness only).\n\n" if not is_real else "(Real Chandrayaan-2 DFSAR L-band quad-pol data).\n\n")
+        + f"> **Trained for {epochs_used} epochs, {len(SEEDS)} seeds, on {data_source} data**\n\n"
+        + "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |\n"
+        + "|-------|----------|-----------|--------|----|---------|---------|--------|----------|\n"
     )
     for r in summary_rows:
         summary_md += (
@@ -488,7 +512,7 @@ def main():
         f.write(summary_md)
 
     print(f"\nAll results saved to {REPORTS_DIR}/")
-    print("Block 2 complete.")
+    print("Training run complete.")
     return summary_rows
 
 
