@@ -1,42 +1,45 @@
 # PRD — IceShadowNet
 
-**Deep Learning-Based Detection of Potential Subsurface Ice in Lunar South Polar Regions Using Chandrayaan-2 DFSAR and OHRC Data**
+**Deep Learning-Based Detection of Potential Subsurface Ice in Lunar South Polar Regions Using Chandrayaan-2 DFSAR Data (with Multimodal OHRC as Synthetic Future Work)**
 
 ---
 
 ## 1. Problem Statement
 
-ISRO's Chandrayaan-2 mission provides radar (DFSAR) and optical (OHRC) data over lunar south-polar "doubly shadowed craters" believed to host subsurface water-ice — a high-priority target for future ISRU missions. Current detection relies on hand-crafted radar polarimetric thresholds (CPR > 1, DOP < 0.13) applied pixel-by-pixel. This project asks: **can a deep learning model learn to distinguish potential ice-bearing regions from non-ice terrain using spatial/textural patterns that a pixel-wise threshold cannot capture — and if so, which architecture (custom CNN vs. ResNet) does it better?**
+ISRO's Chandrayaan-2 mission provides L-band quad-polarimetric radar (DFSAR) data over lunar south-polar craters believed to host subsurface water-ice — a high-priority target for future ISRU missions. Current detection relies on hand-crafted radar polarimetric thresholds (CPR > 1, DOP < 0.13) applied pixel-by-pixel. This project asks: **can a deep learning model learn to distinguish potential ice-bearing regions from non-ice terrain using raw radar spatial/textural backscatter without feeding it the derived polarimetric thresholds — and if so, which architecture (custom CNN vs. ResNet) does it better?**
 
-This is scoped as a course Deep Learning project, not a reproduction of the full ISRO hackathon problem (landing site selection, rover path planning, and ice-volume estimation are explicitly out of scope for the core deliverable).
+**Scope Realignment (Post-Audit):**
+Real Chandrayaan-2 DFSAR L1A complex quad-pol data (`ch2_sar_ncxl_20260308`) is used for the primary real-data pipeline. Because the available real OHRC optical tile does not geographically overlap the DFSAR acquisition strip (~35° longitude separation), multimodal fusion (DFSAR + OHRC) is maintained as a validated synthetic pipeline and marked as future work for real data.
 
 ## 2. Objectives
 
-1. Construct a labeled patch dataset from DFSAR (± OHRC) imagery using established radar criteria.
-2. Implement and train a custom CNN baseline.
-3. Implement and train a ResNet-based model on the same task.
-4. Compare both models across accuracy, loss, training time, parameter count, precision/recall/F1, ROC-AUC, and confusion matrix.
-5. Apply Grad-CAM to verify the models attend to physically plausible regions.
-6. Document all findings in a report that satisfies the faculty rubric.
+1. Construct a leak-free labeled patch dataset from real DFSAR L1A complex imagery using spatial block splitting.
+2. Formulate CPR and DOP from quad-pol complex scattering matrix elements using a $7 \times 7$ multilook boxcar filter.
+3. Restrict model inputs strictly to raw radar channels [HH, HV, VV] log-intensity (CPR and DOP excluded).
+4. Implement and evaluate classical baselines (Plain Threshold and Decision Tree on CPR/DOP) on the identical spatial test split.
+5. Train and compare a custom CNN baseline and adapted ResNet architectures.
+6. Compare models across accuracy, loss, precision/recall/F1, ROC-AUC, training time, parameter count, and confusion matrix.
+7. Apply Grad-CAM to verify the models attend to physically plausible regions.
 
 ## 3. Scope
 
 **In scope**
-- Binary classification: potential-ice vs. non-ice patch.
-- Custom CNN vs. ResNet comparison (core experiment).
-- Optional multimodal variant (DFSAR + OHRC).
-- Optional stretch: geospatial ice-probability map from patch predictions.
+- Binary classification: anomalous polarimetric patch vs. normal regolith patch.
+- Real-data pipeline: DFSAR-only (L1A complex quad-pol).
+- Classical polarimetric baselines (Threshold & Decision Tree on CPR/DOP).
+- Custom CNN vs. ResNet comparison on raw radar inputs.
+- Synthetic-only pipeline: Multimodal fusion (EarlyFusionCNN, LateFusionResNet) scoped as future work for real data.
 
 **Out of scope**
-- Rover traverse path planning.
-- Ice volume estimation via dielectric/backscatter modeling.
-- Landing site safety scoring.
-- Pixel-level segmentation (U-Net) — only as a future-work mention unless data/time allow.
+- Physical ice ground-truth verification (no ground truth exists on Moon).
+- Rover traverse path planning and ice volume estimation.
+- Optical fusion on real tiles (disjoint spatial footprints).
 
 ## 4. Non-Goals / Explicit Disclaimers
 
-- The project does **not** claim to detect physical ice. It classifies signatures *consistent with* the scientific criteria for potential ice presence.
-- Labels are derived from existing radar thresholds, not independently verified ground truth — this limitation must be stated in the report and be answerable in viva.
+- The project does **not** claim to detect confirmed physical ice. It classifies signatures *consistent with* the scientific criteria for potential ice presence.
+- **Scientific limitation:** No external PSR (Permanently Shadowed Region) or DEM slope mask is applied. Labels strictly signify "anomalous CPR/DOP regions", not verified subsurface ice.
+- **Anti-Circularity Policy:** Derived polarimetric features (CPR, DOP) define labels and baseline comparisons only; they are strictly barred from being model inputs.
 
 ## 5. Users / Stakeholders
 

@@ -1,48 +1,63 @@
 # IceShadowNet
 
-**Deep Learning-Based Detection of Potential Subsurface Ice in Lunar South Polar Regions Using Chandrayaan-2 DFSAR and OHRC Data: A Comparative Study of Custom CNN and ResNet**
+**Deep Learning-Based Detection of Potential Subsurface Ice in Lunar South Polar Regions Using Chandrayaan-2 DFSAR Data: A Comparative Study of Custom CNN and ResNet (with Multimodal OHRC as Synthetic Future Work)**
 
 > Motivated by ISRO's Chandrayaan-2 lunar ice characterization problem. This project extracts a focused, defensible Deep Learning research question from that domain rather than reproducing the full hackathon pipeline (GIS + radar processing + rover path planning).
 
 ---
 
-## 1. Overview
+## 1. Overview & Scope Clarification
 
-IceShadowNet investigates whether deep learning models can distinguish **potential ice-bearing regions** from **non-ice / rough terrain** inside lunar south-polar "doubly shadowed craters," using Chandrayaan-2 **DFSAR** (Dual Frequency Synthetic Aperture Radar) and **OHRC** (Orbiter High Resolution Camera) data.
+IceShadowNet investigates whether deep learning models can distinguish **anomalous polarimetric radar signatures** from **typical lunar regolith backscatter** in lunar south-polar regions, using real Chandrayaan-2 **DFSAR** (Dual Frequency Synthetic Aperture Radar) L-band quad-polarimetric data.
 
-We compare a **custom CNN** against **ResNet** on this classification task, and analyze *why* one outperforms the other — not just that it does.
+> **Scope Decision (Real vs. Synthetic Data):**
+> - **Real-Data Pipeline:** **DFSAR-only**. Real L1A complex slant-range (SLI) quad-polarimetric data (`ch2_sar_ncxl_20260308`) is processed to synthesize circular polarization channels and derive multilooked CPR and DOP labels.
+> - **Multimodal (OHRC) Pipeline:** **Synthetic-only future work**. The downloaded real OHRC optical tile (`ch2_ohr_ncp_20260719`) does not geographically overlap the DFSAR acquisition strip (~35° longitude separation / ~1,800 km apart). Multimodal fusion architectures (EarlyFusionCNN, LateFusionResNet) are validated on synthetic data only and scoped as future work pending overlapping optical coverage.
 
-## 2. Motivation
+## 2. Scientific Framing & Limitations
 
-Subsurface water-ice in the Moon's permanently shadowed regions (PSRs) is a high-priority target for future ISRU (In-Situ Resource Utilization) missions. Existing detection relies on hand-crafted radar thresholds (e.g., CPR > 1, DOP < 0.13). This project tests whether a learned model can pick up spatial/textural patterns a pixel-wise threshold misses.
-
-**Important scientific framing:** this project detects and classifies *radar/imagery signatures consistent with subsurface ice*, not ice itself. All ground truth is derived from established scientific radar criteria, not physical sample verification.
+- **Label Interpretation:** Labels derived from $\text{CPR} > 1.0 \land \text{DOP} < 0.13$ define **"regions with anomalous circular polarization and low degree of polarization"** (consistent with multiple volume scattering / potential subsurface ice in lunar literature). Because no external PSR (Permanently Shadowed Region) or DEM slope mask is applied, labels denote **anomalous CPR regions**, NOT confirmed physical water-ice.
+- **Model Input Policy (Anti-Circularity):** Model inputs are strictly **raw radar log-intensities** ($\log_{10}|S_{HH}|^2, \log_{10}|S_{HV}|^2, \log_{10}|S_{VV}|^2$). Derived quantities (CPR, DOP) are strictly excluded from network inputs to prevent the models from trivially memorizing the labeling rule.
+- **Multilook Averaging:** Single-look complex radar data mathematically forces $\text{DOP} \equiv 1.0$ at every pixel. A $7 \times 7$ boxcar multilook filter is applied to the polarimetric covariance terms before calculating DOP and CPR.
 
 ## 3. Objectives
 
-- Build a labeled patch dataset from DFSAR (+ optionally OHRC) imagery of a doubly-shadowed crater.
-- Implement a custom CNN from scratch.
-- Implement/adapt ResNet for the same task.
-- Compare both models on accuracy, precision, recall, F1, ROC-AUC, training/validation loss, training time, parameter count, and confusion matrix.
-- Use Grad-CAM to check whether the models attend to physically meaningful radar structures.
-- (Optional extension) Convert per-patch predictions into a geospatial ice-probability map.
+- Build a leak-free labeled patch dataset from real DFSAR L1A complex imagery using spatial block splitting.
+- Implement a custom CNN from scratch and adapt ResNet18 for raw multi-channel SAR backscatter.
+- Compare models on Accuracy, Precision, Recall, F1, ROC-AUC, training time, parameter count, and confusion matrix.
+- Evaluate classical baselines (Plain Threshold and Decision Tree on CPR/DOP) on the identical spatial test split.
+- Use Grad-CAM to evaluate whether models attend to physically plausible radar backscatter features.
 
 ## 4. Dataset
 
-| Source | Payload | Use |
-|---|---|---|
-| Chandrayaan-2 | DFSAR (Dual Frequency SAR) | Primary radar input — CPR/DOP-derived features |
-| Chandrayaan-2 | OHRC (High Resolution Camera) | Optical/terrain context, optional multimodal input |
+| Source | Payload | Processing Level | Status / Use |
+|---|---|---|---|
+| Chandrayaan-2 | DFSAR (L-band quad-pol) | L1A SLI (Complex float32) | **REAL:** Primary input; quad-pol complex scattering matrix ($S_{HH}, S_{HV}, S_{VH}, S_{VV}$) |
+| Chandrayaan-2 | OHRC (Panchromatic optical) | Calibrated L1 | **FUTURE WORK:** Disjoint footprint; preserved for future multimodal alignment |
 
-- Data obtained via [PRADAN / ISSDC](https://pradan.issdc.gov.in/ch2/) (public, requires free registration).
-- Scoped to one or more doubly-shadowed craters in the lunar south polar region.
-- Labels derived from radar polarimetric thresholds (CPR > 1, DOP < 0.13), not manual annotation.
-- **Split strategy:** spatial block split (not random) to avoid leakage between adjacent, spatially-correlated patches.
+- **Real DFSAR tile:** `ch2_sar_ncxl_20260308t062017233` (South Polar strip, −81.7° to −86.3° latitude).
+- **Label rule:** $\text{CPR} > 1.0 \land \text{DOP} < 0.13$ with multilook window $W=7$ ($\ge 5$ candidate pixels per $64 \times 64$ patch).
+- **Split strategy:** Spatial block split grid $(1, 20)$ along the ground track to prevent adjacent patch leakage.
 
 ## 5. Methodology
 
 ```
-DFSAR + OHRC raw data
+Real DFSAR L1A Complex SLI (HH, HV, VH, VV)
+        ↓
+Multilook Polarimetric Analysis (W=7 boxcar)
+   ├── S_RR = 0.5 * ((Shh - Svv) + 2i*Shv)   [Same-sense circular]
+   └── S_RL = 0.5 * (Shh + Svv)              [Opposite-sense circular]
+        ↓
+Label Generation: CPR > 1.0 & DOP < 0.13 (min 5 px/patch)
+        ↓
+Model Input Construction: Raw Log-Intensities [HH, HV, VV]
+(CPR and DOP strictly excluded from inputs)
+        ↓
+Spatial Block Split (Grid 1x20, zero spatial leakage)
+        ↓
+Model Training (CustomCNN, ResNet-scratch, ResNet-pretrained) & Baselines (Threshold, Decision Tree)
+        ↓
+Evaluation & Grad-CAM Explainability
         ↓
 Preprocessing (radar normalization, polarimetric feature extraction,
                 image registration, patch generation, augmentation)

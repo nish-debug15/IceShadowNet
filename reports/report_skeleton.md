@@ -5,7 +5,7 @@
 
 ## 1. Title & Team
 
-**Title:** Deep Learning-Based Detection of Potential Subsurface Ice in Lunar South Polar Regions Using Chandrayaan-2 DFSAR and OHRC Data: A Comparative Study of Custom CNN and ResNet
+**Title:** Deep Learning-Based Detection of Potential Subsurface Ice in Lunar South Polar Regions Using Chandrayaan-2 DFSAR Data: A Comparative Study of Custom CNN and ResNet (with Multimodal OHRC as Synthetic Future Work)
 
 | # | Name | Role |
 |---|------|------|
@@ -19,45 +19,54 @@
 
 ## 2. Problem & Objectives
 
-<!-- TODO (team): Write 2–3 paragraphs covering:
-     - Why lunar south-polar ice detection matters (ISRU, future missions).
-     - What DFSAR/OHRC provide and what current threshold-based detection misses.
-     - The specific DL research question: custom CNN vs ResNet for binary patch classification.
-     Reference PRD §1–§2. -->
+ISRO's Chandrayaan-2 DFSAR payload provides full quad-polarimetric L-band SAR data over
+lunar south-polar craters suspected to host subsurface water-ice. Current detection
+relies on hand-crafted radar polarimetric thresholds (CPR > 1, DOP < 0.13). This project
+investigates whether a deep learning model trained on raw radar backscatter images can learn
+spatial and textural signatures beyond pixel-wise thresholds, and compares a custom CNN baseline
+to adapted ResNet architectures.
 
-**Placeholder text (replace with team-written prose):**
-ISRO's Chandrayaan-2 DFSAR payload provides dual-polarisation SAR data over
-permanently-shadowed lunar south-polar craters suspected to contain subsurface
-water-ice. Current detection relies on hand-crafted radar criteria (CPR > 1,
-DOP < 0.13). This project investigates whether a deep learning model trained on
-radar patch images can learn spatial and textural signatures beyond pixel-wise
-thresholds, and compares a custom CNN baseline to adapted ResNet architectures.
+**Scope & Real Data Alignment:**
+- **Primary Real Pipeline:** DFSAR-only using Chandrayaan-2 L1A complex slant-range (SLI) quad-pol data (`ch2_sar_ncxl_20260308`).
+- **Multimodal Variant (OHRC):** Marked as **synthetic-only future work** because the available real OHRC optical tile does not geographically overlap the DFSAR acquisition strip (~35° longitude separation).
+- **Core Scientific Limitation:** No external PSR (Permanently Shadowed Region) or DEM slope mask is applied. Therefore, labels denote **"anomalous CPR/DOP regions"**, NOT confirmed physical water-ice.
 
 **Objectives:**
-1. Construct a labeled patch dataset using the CPR/DOP threshold as ground truth.
-2. Train and evaluate a custom CNN from scratch.
-3. Train and evaluate ResNet (scratch + ImageNet-pretrained adaptation).
-4. Compare models on Accuracy, Precision, Recall, F1, ROC-AUC, training time, parameter count.
-5. Apply Grad-CAM to verify the model attends to spatially meaningful radar structures.
-6. Implement DFSAR + OHRC multimodal fusion variants.
+1. Construct a leak-free labeled patch dataset from real complex DFSAR data using spatial block splitting.
+2. Synthesize circular polarization states from complex quad-pol scattering matrix elements ($S_{HH}, S_{HV}, S_{VH}, S_{VV}$) with $7 \times 7$ multilook spatial averaging.
+3. Enforce a strict anti-circularity input policy: model inputs are raw log-intensities only (CPR and DOP strictly excluded).
+4. Evaluate classical baselines (Plain Threshold and Decision Tree) on the spatial test split.
+5. Train and evaluate a custom CNN and adapted ResNet models.
+6. Compare models on Accuracy, Precision, Recall, F1, ROC-AUC, training time, parameter count.
+7. Apply Grad-CAM to verify the model attends to spatially meaningful radar structures.
 
 ---
 
 ## 3. Dataset & Preprocessing
 
-### 3.1 Data Source
+### 3.1 Data Source & Operational Scope
 
-> **⚠️ NOTE:** All results in this report are computed on a **SYNTHETIC** dataset.
-> Real DFSAR tiles from PRADAN/ISSDC are not yet downloaded (access pending).
-> See `reports/data_notes.md` for full acquisition status.
-> When real tiles are obtained, re-run `scripts/ingest_and_split.py` and
-> `scripts/train_all.py` — no code changes required.
+| Source | Payload | Level | Status / Use |
+|--------|---------|-------|--------------|
+| Chandrayaan-2 PRADAN | DFSAR (L-band quad-pol) | L1A SLI (`ComplexLSB8`) | ✅ **REAL:** Primary input; quad-pol complex scattering matrix |
+| Chandrayaan-2 PRADAN | OHRC (Panchromatic optical) | Calibrated L1 | ⏳ **FUTURE WORK:** Footprint disjoint; reserved for future registration |
+| Synthetic Benchmark | DFSAR + OHRC (physically motivated) | In-memory | ✅ Validated end-to-end benchmark |
 
-| Source | Payload | Status |
-|--------|---------|--------|
-| PRADAN/ISSDC | DFSAR (dual-pol SAR) | ⏳ Pending download |
-| PRADAN/ISSDC | OHRC (optical) | ⏳ Pending download |
-| **This report** | **Synthetic (physically motivated)** | ✅ Used here |
+### 3.2 Real DFSAR Complex Polarimetry & Multilooking
+
+1. **Complex Formulation:** Single-look complex (SLC) scattering matrix components ($S_{HH}, S_{HV}, S_{VH}, S_{VV}$) are loaded from L1A SLI GeoTIFFs.
+2. **Circular Basis Transformation:**
+   $$S_{RR} = \frac{1}{2} \left[ (S_{HH} - S_{VV}) + 2i S_{HV\_sym} \right] \quad \text{(Same-sense circular)}$$
+   $$S_{RL} = \frac{1}{2} (S_{HH} + S_{VV}) \quad \text{(Opposite-sense circular)}$$
+3. **Multilook Averaging ($W=7$):**
+   A $7 \times 7$ boxcar filter is applied to the quadratic powers ($\sigma_{RR} = |S_{RR}|^2, \sigma_{RL} = |S_{RL}|^2$) and cross-terms ($2 S_{RR} S_{RL}^*$) **prior** to computing Stokes parameters and DOP. This is mathematically essential: for a single look ($W=1$), algebraic identity forces $\text{DOP} \equiv 1.0000$ at every pixel.
+4. **Derived Indicators:**
+   $$\text{CPR} = \frac{\langle \sigma_{RR} \rangle_7}{\langle \sigma_{RL} \rangle_7 + \epsilon}, \quad \text{DOP} = \frac{\sqrt{S_1^2 + S_2^2 + S_3^2}}{S_0 + \epsilon}$$
+
+### 3.3 Labeling Rule & Input Channel Policy
+
+- **Label Rule:** A patch ($64 \times 64$) is assigned label $y = 1$ if at least 5 pixels ($\approx 0.12\%$) satisfy $\text{CPR} > 1.0 \land \text{DOP} < 0.13$. Otherwise $y = 0$.
+- **Strict Input Policy:** Model inputs are strictly **raw radar log-intensities**: $[\log_{10}|S_{HH}|^2, \log_{10}|S_{HV}|^2, \log_{10}|S_{VV}|^2]$. CPR and DOP are **never** provided as model inputs, preventing circular trivialization.
 
 ### 3.2 Synthetic Scene Description
 
