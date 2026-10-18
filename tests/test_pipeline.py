@@ -49,3 +49,58 @@ def test_minimum_positives_assertion():
     lbl_val = np.zeros((10,))  # 0 positives
     with pytest.raises(AssertionError):
         assert lbl_val.sum() > 0, "FATAL: Val split contains zero positive (ice) samples!"
+
+
+def test_cpr_dop_complex_analytic_cases():
+    from src.preprocessing.data_ops import compute_cpr_dop_complex
+
+    H, W_grid = 64, 64
+
+    # ── Case 1: Ideal flat surface (Bragg / specular reflection) ──
+    # For a flat smooth dielectric boundary, reflection coefficients r_h and r_v are
+    # in-phase and there is zero cross-polarization (Shv = Svh = 0).
+    # Coherent circular transformation yields:
+    #   S_RR = 0.5 * ((Shh - Svv) + 2j * Shv) = 0
+    #   S_RL = 0.5 * (Shh + Svv) = 1.0
+    # Expected: CPR == 0.0 (strictly opposite-sense circular return)
+    #           DOP == 1.0 (pure polarized state, zero depolarization)
+    Shh_flat = np.ones((H, W_grid), dtype=np.complex64)
+    Svv_flat = np.ones((H, W_grid), dtype=np.complex64)
+    Shv_flat = np.zeros((H, W_grid), dtype=np.complex64)
+    Svh_flat = np.zeros((H, W_grid), dtype=np.complex64)
+
+    cpr_flat, dop_flat = compute_cpr_dop_complex(Shh_flat, Shv_flat, Svh_flat, Svv_flat, W=5)
+    assert np.allclose(cpr_flat, 0.0, atol=1e-5), f"Flat surface CPR expected ~0, got {cpr_flat.max()}"
+    assert np.allclose(dop_flat, 1.0, atol=1e-3), f"Flat surface DOP expected ~1, got {dop_flat.min()}"
+
+    # ── Case 2: Ideal dihedral / 180° phase flip (anomalous same-sense return) ──
+    # Double-bounce dihedral reflection causes a 180° phase shift between HH and VV:
+    #   Shh = +1, Svv = -1, Shv = 0
+    # Then:
+    #   S_RR = 0.5 * (1 - (-1)) = 1.0  (all power in same-sense circular!)
+    #   S_RL = 0.5 * (1 + (-1)) = 0.0  (zero opposite-sense circular)
+    # Expected: CPR >> 1.0 (approaching numerical limit ~1e10)
+    #           DOP == 1.0 (single deterministic polarized state)
+    Svv_dihedral = -np.ones((H, W_grid), dtype=np.complex64)
+    cpr_dih, dop_dih = compute_cpr_dop_complex(Shh_flat, Shv_flat, Svh_flat, Svv_dihedral, W=5)
+    assert np.all(cpr_dih > 1.0), "Dihedral reflection must yield CPR > 1.0"
+    assert np.allclose(dop_dih, 1.0, atol=1e-3), f"Dihedral DOP expected ~1, got {dop_dih.min()}"
+
+    # ── Case 3: Strongly depolarizing volume scattering ──
+    # Independent random phases between channels simulate multiple random scattering
+    # inside a disordered medium (e.g. fractured icy regolith).
+    # Under multilook spatial averaging (W=21), cross-coherence drops and the return
+    # becomes significantly depolarized:
+    # Expected: DOP substantially lower than specular (< 0.50), CPR elevated (> 1.0)
+    rng = np.random.default_rng(42)
+    Shh_rnd = np.exp(1j * rng.uniform(0, 2*np.pi, (H, W_grid))).astype(np.complex64)
+    Svv_rnd = np.exp(1j * rng.uniform(0, 2*np.pi, (H, W_grid))).astype(np.complex64)
+    Shv_rnd = (0.7 * np.exp(1j * rng.uniform(0, 2*np.pi, (H, W_grid)))).astype(np.complex64)
+    Svh_rnd = Shv_rnd
+
+    cpr_rnd, dop_rnd = compute_cpr_dop_complex(Shh_rnd, Shv_rnd, Svh_rnd, Svv_rnd, W=21)
+    # Exclude boundary margins influenced by filter padding
+    inner_dop = dop_rnd[21:-21, 21:-21]
+    inner_cpr = cpr_rnd[21:-21, 21:-21]
+    assert inner_dop.mean() < 0.40, f"Random volume DOP must show depolarization (<0.40), got {inner_dop.mean():.3f}"
+    assert inner_cpr.mean() > 1.0, f"Random volume CPR expected > 1.0, got {inner_cpr.mean():.3f}"

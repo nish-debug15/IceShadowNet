@@ -220,6 +220,149 @@ def compute_cpr_dop(dfsar_array: np.ndarray):
     return cpr.astype(np.float32), dop.astype(np.float32)
 
 
+def compute_cpr_dop_complex(
+    Shh: np.ndarray,
+    Shv: np.ndarray,
+    Svh: np.ndarray,
+    Svv: np.ndarray,
+    W: int = 7,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute Circular Polarization Ratio (CPR) and Degree of Polarization (DOP)
+    from quad-polarimetric complex scattering matrix elements (Shh, Shv, Svh, Svv).
+
+    Theoretical Derivation:
+    -----------------------
+    1. Scattering matrix in circular polarization basis (R = right-circular, L = left-circular):
+       S_RR = 0.5 * ((Shh - Svv) + i * (Shv + Svh))   [Same-sense circular (SC)]
+       S_RL = 0.5 * ((Shh + Svv) + i * (Svh - Shv))   [Opposite-sense circular (OC)]
+       Assuming radar reciprocity (S_hv ≈ S_vh), we symmetrize: S_hv_sym = 0.5 * (Shv + Svh)
+       S_RR = 0.5 * ((Shh - Svv) + 2j * S_hv_sym)
+       S_RL = 0.5 * (Shh + Svv)
+
+    2. Circular backscatter powers and cross-power:
+       sigma_RR = |S_RR|^2
+       sigma_RL = |S_RL|^2
+       P_RL = 2.0 * S_RR * conj(S_RL)
+
+    3. Spatial multilook averaging over WxW window:
+       <sigma_RR> = uniform_filter(sigma_RR, size=W)
+       <sigma_RL> = uniform_filter(sigma_RL, size=W)
+       <P_RL_re>  = uniform_filter(Re(P_RL), size=W)
+       <P_RL_im>  = uniform_filter(Im(P_RL), size=W)
+
+       MATHEMATICAL NECESSITY OF MULTILOOKING:
+       For a single look (W=1), the instantaneous Stokes vector identically satisfies
+       S0^2 = S1^2 + S2^2 + S3^2, which forces DOP = 1.0000 at every pixel regardless of
+       depolarization. Multilooking over a spatial window (W x W) is mathematically
+       required to measure statistical decorrelation and partial polarization.
+
+    4. Stokes parameters for circular receive basis:
+       S0 = <sigma_RR> + <sigma_RL>
+       S1 = <P_RL_re>
+       S2 = <P_RL_im>
+       S3 = <sigma_RR> - <sigma_RL>
+
+    5. Polarimetric indicators:
+       CPR = <sigma_RR> / (<sigma_RL> + eps)
+       DOP = sqrt(S1^2 + S2^2 + S3^2) / (S0 + eps)
+
+    Args:
+        Shh, Shv, Svh, Svv: Complex numpy arrays of matching shape (H, W).
+        W: Multilook boxcar window size (must be >= 1, typically odd e.g. 7).
+
+    Returns:
+        (cpr, dop): float32 numpy arrays of shape (H, W).
+    """
+    from scipy.ndimage import uniform_filter
+
+    eps = 1e-10
+
+    # Reciprocal symmetrization of cross-polar channels
+    Shv_sym = 0.5 * (Shv + Svh)
+
+    # Circular polarization scattering matrix components
+    S_RR = 0.5 * ((Shh - Svv) + 2j * Shv_sym)
+    S_RL = 0.5 * (Shh + Svv)
+
+    # Single-look powers
+    sigma_RR = (np.abs(S_RR) ** 2).astype(np.float64)
+    sigma_RL = (np.abs(S_RL) ** 2).astype(np.float64)
+
+    # Multilook averaging over W x W window
+    if W > 1:
+        m_RR = uniform_filter(sigma_RR, size=W)
+        m_RL = uniform_filter(sigma_RL, size=W)
+        cross_RL = 2.0 * (S_RR * np.conj(S_RL))
+        m_cross_re = uniform_filter(np.real(cross_RL).astype(np.float64), size=W)
+        m_cross_im = uniform_filter(np.imag(cross_RL).astype(np.float64), size=W)
+    else:
+        m_RR = sigma_RR
+        m_RL = sigma_RL
+        cross_RL = 2.0 * (S_RR * np.conj(S_RL))
+        m_cross_re = np.real(cross_RL).astype(np.float64)
+        m_cross_im = np.imag(cross_RL).astype(np.float64)
+
+    # Stokes parameters
+    S0 = m_RR + m_RL
+    S1 = m_cross_re
+    S2 = m_cross_im
+    S3 = m_RR - m_RL
+
+    # Circular polarization ratio
+    cpr = m_RR / (m_RL + eps)
+
+    # Degree of polarization (clamped to [0, 1])
+    dop = np.sqrt(np.maximum(0.0, S1 ** 2 + S2 ** 2 + S3 ** 2)) / (S0 + eps)
+    dop = np.clip(dop, 0.0, 1.0)
+
+    return cpr.astype(np.float32), dop.astype(np.float32)
+
+
+def load_complex_dfsar_sli(
+    raw_dir: str = "data/raw/sar_nxcl",
+    start_row: int = 0,
+    num_rows: int | None = None,
+) -> dict[str, np.ndarray]:
+    """
+    Load quad-polarimetric L1A slant-range complex (SLI) GeoTIFFs from raw_dir.
+
+    Returns:
+        Dictionary with keys 'hh', 'hv', 'vh', 'vv', each mapping to a complex64
+        numpy array of shape (H, W).
+    """
+    if not _HAS_RASTERIO:
+        raise ImportError("rasterio is required to load SLI complex tiles.")
+
+    channels = {}
+    pols = ["hh", "hv", "vh", "vv"]
+
+    # Search for SLI files in raw_dir
+    sli_files = {}
+    for root, dirs, files in os.walk(raw_dir):
+        for f in files:
+            lower = f.lower()
+            if "_sli_" in lower and lower.endswith(".tif"):
+                for pol in pols:
+                    if f"_{pol}_" in lower:
+                        sli_files[pol] = os.path.join(root, f)
+
+    for pol in pols:
+        path = sli_files.get(pol)
+        if not path or not os.path.isfile(path):
+            raise FileNotFoundError(f"SLI {pol.upper()} complex file not found under {raw_dir}")
+
+        with rasterio.open(path) as ds:
+            w_rows = num_rows if num_rows is not None else ds.height
+            window = ((start_row, start_row + w_rows), (0, ds.width))
+            arr = ds.read(window=window)  # shape (2, H, W)
+            real_part = arr[0].astype(np.float32)
+            imag_part = arr[1].astype(np.float32)
+            channels[pol] = real_part + 1j * imag_part
+
+    return channels
+
+
 def label_from_threshold(cpr: np.ndarray, dop: np.ndarray) -> np.ndarray:
     """
     Generate a binary ice-candidate mask using established radar polarimetric criteria.
