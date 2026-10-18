@@ -3,7 +3,7 @@ data/raw/
 data/processed/
 
 # Model checkpoints (potentially large)
-models/
+/models/
 
 # Python cache
 __pycache__/
