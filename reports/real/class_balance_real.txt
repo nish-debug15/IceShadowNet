@@ -7,11 +7,11 @@ Total patches        : 2498
   Non-ice (negative) : 1913 (76.6%)
 pos_weight for BCE   : 3.27  (= n_noice / n_ice)
 
-Train / Val / Test   : 1746 / 378 / 374
-  Train ice count    : 389 / 1746 (22.3%)
-  Val   ice count    : 86 / 378 (22.8%)
-  Test  ice count    : 110 / 374 (29.4%)
+Train / Val / Test   : 1686 / 342 / 338
+  Train ice count    : 362 / 1686 (21.5%)
+  Val   ice count    : 77 / 342 (22.5%)
+  Test  ice count    : 101 / 338 (29.9%)
 
-Spatial split grid   : (1, 20)
-Leakage assertion    : PASSED (no coordinate in >1 split)
-Minimum pos check    : PASSED (all splits have >= 10 positives: Train=389, Val=86, Test=110)
+Spatial split grid   : (1, 20) (boundary buffer: 64 px)
+Leakage assertions   : PASSED (zero coordinate leakage AND zero pixel-extent overlap)
+Minimum pos check    : PASSED (all splits have >= 10 positives: Train=362, Val=77, Test=101)

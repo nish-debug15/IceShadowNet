@@ -6,7 +6,7 @@ import sys
 # Add src to path so we can import modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.datasets.spatial_split import spatial_block_split
+from src.datasets.spatial_split import spatial_block_split, assert_no_extent_leakage
 from scripts.train_all import flag_suspicious_metrics
 
 def test_split_leakage():
@@ -104,3 +104,50 @@ def test_cpr_dop_complex_analytic_cases():
     inner_cpr = cpr_rnd[21:-21, 21:-21]
     assert inner_dop.mean() < 0.40, f"Random volume DOP must show depolarization (<0.40), got {inner_dop.mean():.3f}"
     assert inner_cpr.mean() > 1.0, f"Random volume CPR expected > 1.0, got {inner_cpr.mean():.3f}"
+
+
+def test_pixel_extent_leakage_assertion():
+    """Verify that assert_no_extent_leakage detects overlapping patch extents across splits."""
+    P = 64
+    # Disjoint coordinates ((0,0) != (32,0)), but overlapping extents [0, 64) and [32, 96)
+    train_coords = [(0, 0)]
+    val_coords = [(32, 0)]
+    test_coords = [(500, 500)]
+
+    # Must raise AssertionError because abs(0 - 32) < 64 and abs(0 - 0) < 64
+    with pytest.raises(AssertionError, match="PIXEL EXTENT LEAKAGE DETECTED"):
+        assert_no_extent_leakage(train_coords, val_coords, test_coords, patch_size=P)
+
+    # When truly separated by >= 64 pixels, assertion must pass cleanly
+    train_clean = [(0, 0)]
+    val_clean = [(100, 0)]
+    test_clean = [(200, 0)]
+    assert_no_extent_leakage(train_clean, val_clean, test_clean, patch_size=P)
+
+
+def test_spatial_split_boundary_buffer_synthetic():
+    """Verify that spatial_block_split with buffer_pixels > 0 completely eliminates extent leakage."""
+    P = 64
+    stride = 32
+    # Dense 1D/2D synthetic coordinate grid with overlapping strides (4096 pixels gives 512px blocks for grid 1x8)
+    coords = [(r, c) for r in range(0, 4096, stride) for c in range(0, 128, stride)]
+    grid_size = (1, 8)
+
+    # Split with 64-pixel boundary buffer
+    train_c, val_c, test_c = spatial_block_split(
+        coords,
+        grid_size=grid_size,
+        train_ratio=0.70,
+        val_ratio=0.15,
+        patch_size=P,
+        buffer_pixels=64,
+        seed=42,
+    )
+
+    # Both coordinate and pixel-extent leakage must be zero
+    assert set(train_c).isdisjoint(val_c)
+    assert set(train_c).isdisjoint(test_c)
+    assert set(val_c).isdisjoint(test_c)
+    assert_no_extent_leakage(train_c, val_c, test_c, patch_size=P)
+    assert len(train_c) > 0 and len(val_c) > 0 and len(test_c) > 0
+

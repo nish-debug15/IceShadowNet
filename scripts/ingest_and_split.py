@@ -29,7 +29,7 @@ from src.preprocessing.data_ops import (
     load_dfsar, load_ohrc, compute_cpr_dop,
     label_from_threshold, generate_patches,
 )
-from src.datasets.spatial_split import spatial_block_split
+from src.datasets.spatial_split import spatial_block_split, assert_no_extent_leakage
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -142,22 +142,28 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
     print(f"  Ice patches   : {n_ice} ({100*ice_ratio:.1f}%)")
     print(f"  Non-ice       : {n_noice} ({100*(1-ice_ratio):.1f}%)")
 
-    # 4. Spatial block split
+    # 4. Spatial block split with boundary buffer
+    buffer_px = 64
     train_coords, val_coords, test_coords = spatial_block_split(
         coordinates=coords,
         grid_size=grid_size,
         train_ratio=0.70,
         val_ratio=0.15,
+        patch_size=P,
+        buffer_pixels=buffer_px,
     )
 
-    # Disjointness assertion
+    # Disjointness assertion (coordinate level)
     train_set = set(train_coords)
     val_set = set(val_coords)
     test_set = set(test_coords)
     assert train_set.isdisjoint(val_set),  "LEAKAGE DETECTED: train ∩ val is non-empty!"
     assert train_set.isdisjoint(test_set), "LEAKAGE DETECTED: train ∩ test is non-empty!"
     assert val_set.isdisjoint(test_set),   "LEAKAGE DETECTED: val ∩ test is non-empty!"
-    print(f"\nSpatial split verified (no leakage):")
+
+    # Pixel-extent leakage assertion (hard assertion: zero extent overlap between any splits)
+    assert_no_extent_leakage(train_coords, val_coords, test_coords, patch_size=P)
+    print(f"\nSpatial split verified (zero coordinate and zero pixel-extent leakage, buffer={buffer_px}px):")
     print(f"  Train: {len(train_coords)}  Val: {len(val_coords)}  Test: {len(test_coords)}")
 
     coord_to_patch = {(p[2][0], p[2][1]): p for p in patches}
@@ -221,8 +227,8 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
         f"  Train ice count    : {train_pos} / {len(train_patches)} ({100*train_pos/max(len(train_patches),1):.1f}%)\n"
         f"  Val   ice count    : {val_pos} / {len(val_patches)} ({100*val_pos/max(len(val_patches),1):.1f}%)\n"
         f"  Test  ice count    : {test_pos} / {len(test_patches)} ({100*test_pos/max(len(test_patches),1):.1f}%)\n"
-        f"\nSpatial split grid   : {grid_size}\n"
-        f"Leakage assertion    : PASSED (no coordinate in >1 split)\n"
+        f"\nSpatial split grid   : {grid_size} (boundary buffer: {buffer_px} px)\n"
+        f"Leakage assertions   : PASSED (zero coordinate leakage AND zero pixel-extent overlap)\n"
         f"Minimum pos check    : PASSED (all splits have >= 10 positives: Train={train_pos}, Val={val_pos}, Test={test_pos})\n"
     )
 
