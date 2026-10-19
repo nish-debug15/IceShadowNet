@@ -78,5 +78,17 @@ $$\text{DOP} = \frac{\sqrt{S_1^2 + S_2^2 + S_3^2}}{S_0 + \epsilon}$$
 - **Ice Anomaly Criteria:**
   - $\text{CPR} > 1.0$: Same-sense circular backscatter exceeds opposite-sense circular backscatter (Coherent Backscatter Opposition Effect — CBOE).
   - $\text{DOP} < 0.13$: Low degree of polarization, indicative of multiple volume scattering inside low-loss dielectric media (water ice).
-- **Patch Label Rule:** A patch is assigned label $y = 1$ (ice candidate) if the fraction of pixels meeting both criteria ($\text{CPR} > 1.0 \land \text{DOP} < 0.13$) exceeds `patch_label_fraction = 0.05` (5%). Otherwise, $y = 0$.
+- **Patch Label Rule:** A patch ($64 \times 64$) is assigned label $y = 1$ (ice candidate) if at least 5 pixels ($\ge 5$ px, $\approx 0.12\%$ of patch area) meet both criteria ($\text{CPR} > 1.0 \land \text{DOP} < 0.13$). Otherwise, $y = 0$.
 - **Model Input Constraint:** Model input tensors contain **raw radar channels only** ($\log_{10}(|S_{HH}|^2 + \epsilon)$, $\log_{10}(|S_{HV}|^2 + \epsilon)$, $\log_{10}(|S_{VV}|^2 + \epsilon)$). CPR and DOP are strictly used for label generation and evaluation baseline comparison, **NEVER** as model inputs.
+
+---
+
+## 4. Ingested Radar Scene & Pixel Statistics
+
+- **Swath Segment:** Rows 100,000 to 140,000 of L1A SLI (`d_sli_xx_fp_ch2_sar_ncxl_20260308t062017233`).
+- **Swath Dimensions:** $40,000 \text{ rows} \times 116 \text{ columns} = 4,640,000 \text{ total pixels}$.
+- **CPR > 1.0:** 80,707 pixels (1.7394%).
+- **DOP < 0.13:** 8,959 pixels (0.1931%).
+- **Both ($\text{CPR} > 1.0 \land \text{DOP} < 0.13$):** 3,033 pixels (0.0654%).
+- **Patch Extraction ($64 \times 64$, stride 32):** 2,498 total patches, 585 positive (23.42%), 1,913 negative (76.58%). Total sum of positive-pixel occurrences across patches = 6,584 (average overlap multiplicity = 2.17).
+
