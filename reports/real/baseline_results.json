@@ -1,0 +1,76 @@
+{
+  "primary": [
+    {
+      "model": "BASELINE: Decision Tree (max_depth=3, balanced)",
+      "threshold": 0.42000000000000004,
+      "accuracy": 0.5325443786982249,
+      "precision": 0.37554585152838427,
+      "recall": 0.8514851485148515,
+      "f1": 0.5212121212121212,
+      "f1_ci": "[0.0357, 0.6623]",
+      "roc_auc": 0.6922337803400593,
+      "roc_auc_ci": "[0.4165, 0.7407]",
+      "pr_auc": 0.42800496668618404,
+      "pr_auc_ci": "[0.2351, 0.4895]",
+      "prevalence": "29.9%",
+      "support": "TP:86 FP:143 FN:15 TN:94 (Pos:101 Neg:237)"
+    },
+    {
+      "model": "BASELINE: Logistic Regression (balanced)",
+      "threshold": 0.5000000000000001,
+      "accuracy": 0.6538461538461539,
+      "precision": 0.44285714285714284,
+      "recall": 0.6138613861386139,
+      "f1": 0.5145228215767634,
+      "f1_ci": "[0.0000, 0.5426]",
+      "roc_auc": 0.7313782011112503,
+      "roc_auc_ci": "[0.4477, 0.8153]",
+      "pr_auc": 0.49525353559967034,
+      "pr_auc_ci": "[0.2374, 0.5401]",
+      "prevalence": "29.9%",
+      "support": "TP:62 FP:78 FN:39 TN:159 (Pos:101 Neg:237)"
+    }
+  ],
+  "clean": [
+    {
+      "model": "BASELINE: Decision Tree (max_depth=3, balanced)",
+      "threshold": 0.42000000000000004,
+      "accuracy": 0.6341463414634146,
+      "precision": 0.589041095890411,
+      "recall": 0.8514851485148515,
+      "f1": 0.6963562753036437,
+      "f1_ci": "[0.0465, 0.8718]",
+      "roc_auc": 0.76746953541508,
+      "roc_auc_ci": "[0.3886, 0.7875]",
+      "pr_auc": 0.717822999158251,
+      "pr_auc_ci": "[0.2533, 0.7953]",
+      "prevalence": "49.3%",
+      "support": "TP:86 FP:60 FN:15 TN:44 (Pos:101 Neg:104)"
+    },
+    {
+      "model": "BASELINE: Logistic Regression (balanced)",
+      "threshold": 0.5000000000000001,
+      "accuracy": 0.7170731707317073,
+      "precision": 0.7654320987654321,
+      "recall": 0.6138613861386139,
+      "f1": 0.6813186813186813,
+      "f1_ci": "[0.0000, 0.7143]",
+      "roc_auc": 0.8511995430312262,
+      "roc_auc_ci": "[0.4657, 0.8760]",
+      "pr_auc": 0.8164071918595978,
+      "pr_auc_ci": "[0.2587, 0.8721]",
+      "prevalence": "49.3%",
+      "support": "TP:62 FP:19 FN:39 TN:85 (Pos:101 Neg:104)"
+    }
+  ],
+  "oracle": {
+    "name": "ORACLE (label rule, not a model)",
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "support": "TP:101 FP:0 FN:0 TN:237 (Pos:101 Neg:237)"
+  }
+}
