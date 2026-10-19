@@ -59,3 +59,62 @@ class IcePatchDataset(Dataset):
             torch.from_numpy(img),
             torch.tensor([label], dtype=torch.float32),
         )
+
+
+def get_ambiguity_mask(
+    ice_fracs: np.ndarray,
+    min_px: int = 1,
+    max_px: int = 4,
+    patch_size: int = 64,
+) -> np.ndarray:
+    """
+    Return a boolean mask selecting patches whose positive-pixel count falls
+    strictly in the ambiguity band [min_px, max_px] (e.g. 1 to 4 positive pixels).
+
+    Args:
+        ice_fracs: Array of float fraction of positive pixels in each patch.
+        min_px: Lower bound of ambiguous pixel count (inclusive).
+        max_px: Upper bound of ambiguous pixel count (inclusive).
+        patch_size: Square patch dimension in pixels.
+
+    Returns:
+        Boolean numpy array of shape (N,).
+    """
+    pos_px = np.round(ice_fracs * (patch_size * patch_size)).astype(int)
+    return (pos_px >= min_px) & (pos_px <= max_px)
+
+
+def get_ambiguous_patches(
+    npz_data_or_path,
+    min_px: int = 1,
+    max_px: int = 4,
+    patch_size: int = 64,
+) -> dict:
+    """
+    Extract the subset of patches falling into the ambiguity band.
+
+    Args:
+        npz_data_or_path: Path to a processed .npz file or loaded npz dictionary.
+        min_px: Minimum positive pixels for ambiguity (default: 1).
+        max_px: Maximum positive pixels for ambiguity (default: 4).
+        patch_size: Patch size in pixels (default: 64).
+
+    Returns:
+        Dictionary containing indices, images, labels, coords, ice_fracs, and count.
+    """
+    if isinstance(npz_data_or_path, str):
+        data = np.load(npz_data_or_path)
+    else:
+        data = npz_data_or_path
+
+    ice_fracs = data["ice_fracs"]
+    mask = get_ambiguity_mask(ice_fracs, min_px=min_px, max_px=max_px, patch_size=patch_size)
+    return {
+        "indices": np.where(mask)[0],
+        "images": data["images"][mask],
+        "labels": data["labels"][mask],
+        "coords": data["coords"][mask],
+        "ice_fracs": data["ice_fracs"][mask],
+        "count": int(mask.sum()),
+    }
+

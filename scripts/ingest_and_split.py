@@ -213,24 +213,42 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
     test_pos  = int(lbl_test.sum())
 
     # 7. Write class_balance_real.txt
-    pos_weight = n_noice / max(n_ice, 1)
+    # pos_weight: strictly computed from TRAIN split only after boundary buffer drop
+    train_neg = len(train_patches) - train_pos
+    pos_weight = train_neg / max(train_pos, 1)
+
+    n_post_buffer = len(train_patches) + len(val_patches) + len(test_patches)
+    n_post_pos    = train_pos + val_pos + test_pos
+    n_post_neg    = n_post_buffer - n_post_pos
+    dropped_count = n_total - n_post_buffer
+    dropped_pos   = n_ice - n_post_pos
+    dropped_neg   = n_noice - n_post_neg
+
     balance_txt = (
-        f"Data source          : {data_source}\n"
-        f"Input channels       : Raw radar log-intensity [HH, HV, VV] (CPR/DOP strictly excluded from inputs)\n"
-        f"Label rule           : CPR > {cpr_thresh} AND DOP < {dop_thresh} (min {min_pos_px} pixels / patch)\n"
-        f"Patch size / stride  : {P} / {stride}\n"
-        f"Total patches        : {n_total}\n"
-        f"  Ice (positive)     : {n_ice}  ({100*ice_ratio:.1f}%)\n"
-        f"  Non-ice (negative) : {n_noice} ({100*(1-ice_ratio):.1f}%)\n"
-        f"pos_weight for BCE   : {pos_weight:.2f}  (= n_noice / n_ice)\n"
-        f"\nTrain / Val / Test   : {len(train_patches)} / {len(val_patches)} / {len(test_patches)}\n"
-        f"  Train ice count    : {train_pos} / {len(train_patches)} ({100*train_pos/max(len(train_patches),1):.1f}%)\n"
-        f"  Val   ice count    : {val_pos} / {len(val_patches)} ({100*val_pos/max(len(val_patches),1):.1f}%)\n"
-        f"  Test  ice count    : {test_pos} / {len(test_patches)} ({100*test_pos/max(len(test_patches),1):.1f}%)\n"
-        f"\nSpatial split grid   : {grid_size} (boundary buffer: {buffer_px} px)\n"
-        f"Leakage assertions   : PASSED (zero coordinate leakage AND zero pixel-extent overlap)\n"
-        f"Minimum pos check    : PASSED (all splits have >= 10 positives: Train={train_pos}, Val={val_pos}, Test={test_pos})\n"
+        f"Data source                  : {data_source}\n"
+        f"Input channels               : Raw radar log-intensity [HH, HV, VV] (CPR/DOP strictly excluded from inputs)\n"
+        f"Label rule                   : CPR > {cpr_thresh} AND DOP < {dop_thresh} (min {min_pos_px} pixels / patch)\n"
+        f"Patch size / stride / buffer : {P} / {stride} / {buffer_px} px\n"
+        f"\nPOST-BUFFER TOTALS (HEADLINE DATASET):\n"
+        f"  Total patches              : {n_post_buffer}\n"
+        f"  Ice (positive)             : {n_post_pos}  ({100*n_post_pos/n_post_buffer:.2f}%)\n"
+        f"  Non-ice (negative)         : {n_post_neg}  ({100*n_post_neg/n_post_buffer:.2f}%)\n"
+        f"pos_weight for BCE           : {pos_weight:.2f}  (= {train_neg} neg / {train_pos} pos, TRAIN split only)\n"
+        f"\nPRE-BUFFER EXTRACTION (SECONDARY REFERENCE):\n"
+        f"  Pre-buffer patches         : {n_total} ({n_ice} positive [{100*ice_ratio:.2f}%], {n_noice} negative [{100*(1-ice_ratio):.2f}%])\n"
+        f"  Dropped by boundary buffer : {dropped_count} patches ({dropped_pos} positive, {dropped_neg} negative)\n"
+        f"\nSPLIT DISTRIBUTION (POST-BUFFER):\n"
+        f"Train / Val / Test           : {len(train_patches)} / {len(val_patches)} / {len(test_patches)}\n"
+        f"  Train ice count            : {train_pos} / {len(train_patches)} ({100*train_pos/max(len(train_patches),1):.2f}%)\n"
+        f"  Val   ice count            : {val_pos} / {len(val_patches)} ({100*val_pos/max(len(val_patches),1):.2f}%)\n"
+        f"  Test  ice count            : {test_pos} / {len(test_patches)} ({100*test_pos/max(len(test_patches),1):.2f}%)\n"
+        f"\nSPATIAL SPLIT INTEGRITY:\n"
+        f"  Spatial split grid         : {grid_size} (boundary buffer: {buffer_px} px)\n"
+        f"  Coordinate leakage         : PASSED (zero shared coordinates across splits)\n"
+        f"  Pixel-extent leakage       : PASSED (zero pixel-extent overlap across splits with {buffer_px}px buffer)\n"
+        f"  Minimum positives check    : PASSED (all splits have >= 10 positives: Train={train_pos}, Val={val_pos}, Test={test_pos})\n"
     )
+
 
     balance_path = os.path.join(out_reports_dir, "class_balance_real.txt")
     with open(balance_path, "w", encoding="utf-8") as f:

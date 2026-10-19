@@ -83,12 +83,25 @@ $$\text{DOP} = \frac{\sqrt{S_1^2 + S_2^2 + S_3^2}}{S_0 + \epsilon}$$
 
 ---
 
-## 4. Ingested Radar Scene & Pixel Statistics
+## 4. Ingested Radar Scene, Scene Geometry & Selection Bias
 
-- **Swath Segment:** Rows 100,000 to 140,000 of L1A SLI (`d_sli_xx_fp_ch2_sar_ncxl_20260308t062017233`).
-- **Swath Dimensions:** $40,000 \text{ rows} \times 116 \text{ columns} = 4,640,000 \text{ total pixels}$.
+### 4.1 Full Product Geometry vs. Ingested Sub-scene
+- **Full SLI Product Dimensions:** 319,812 along-track rows $\times$ 116 cross-track slant-range columns ($37,098,192$ complex pixels total per channel).
+- **Physical Cross-Track Swath Width (116 columns):** The Chandrayaan-2 DFSAR L1A Single-Look Complex (SLI) Full Polarimetric (FP) product contains **exactly 116 range columns**. This represents 100% of the active slant-range swath recorded by the sensor; there are no additional cross-track columns in this data product.
+- **Ingested Sub-scene:** Rows 100,000 to 140,000 ($40,000 \text{ rows} \times 116 \text{ columns} = 4,640,000 \text{ pixels}$).
+- **Fraction of Scene Analyzed:** $40,000 / 319,812 = \mathbf{12.507\%}$ ($\approx 1/8\text{th}$ of the full orbital track).
+
+### 4.2 Explicit Statement of Selection Bias
+- **Rationale for Row Selection:** Rows 100,000 to 140,000 cover the deep South Polar cratered terrain (approximately $-84^\circ$ to $-86^\circ$ South latitude) where permanently shadowed craters and subsurface volatile cold-traps are physically concentrated.
+- **Selection Bias:** This 40,000-row window was intentionally selected because initial polarimetric inspection revealed concentrated high-CPR ($\text{CPR} > 1.0$) and low-DOP ($\text{DOP} < 0.13$) anomalies inside and surrounding South Polar craters. Consequently, this dataset possesses explicit **selection bias** towards anomalous lunar terrain: it does not represent the global average lunar regolith (which is predominantly non-anomalous, low-CPR surface return), but rather an anomaly-enriched regime designed to evaluate binary classification and spatial feature extraction on prospective water-ice candidate targets.
+
+### 4.3 Ingested Pixel & Patch Statistics
 - **CPR > 1.0:** 80,707 pixels (1.7394%).
 - **DOP < 0.13:** 8,959 pixels (0.1931%).
 - **Both ($\text{CPR} > 1.0 \land \text{DOP} < 0.13$):** 3,033 pixels (0.0654%).
-- **Patch Extraction ($64 \times 64$, stride 32):** 2,498 total patches, 585 positive (23.42%), 1,913 negative (76.58%). Total sum of positive-pixel occurrences across patches = 6,584 (average overlap multiplicity = 2.17).
+- **Pre-buffer Patches ($64 \times 64$, stride 32):** 2,498 total (585 positive [23.42%], 1,913 negative [76.58%]).
+- **Boundary Buffer Drop (64 px):** 132 patches dropped (45 positive, 87 negative).
+- **Headline Post-Buffer Patches:** 2,366 total (540 positive [22.82%], 1,826 negative [77.18%]).
+- **pos_weight (TRAIN split only):** $1,324 \text{ neg} / 362 \text{ pos} = \mathbf{3.66}$.
+
 

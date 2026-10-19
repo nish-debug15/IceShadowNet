@@ -1,17 +1,26 @@
-Data source          : REAL (Chandrayaan-2 DFSAR L1A quad-pol SLI)
-Input channels       : Raw radar log-intensity [HH, HV, VV] (CPR/DOP strictly excluded from inputs)
-Label rule           : CPR > 1.0 AND DOP < 0.13 (min 5 pixels / patch)
-Patch size / stride  : 64 / 32
-Total patches        : 2498
-  Ice (positive)     : 585  (23.4%)
-  Non-ice (negative) : 1913 (76.6%)
-pos_weight for BCE   : 3.27  (= n_noice / n_ice)
+Data source                  : REAL (Chandrayaan-2 DFSAR L1A quad-pol SLI)
+Input channels               : Raw radar log-intensity [HH, HV, VV] (CPR/DOP strictly excluded from inputs)
+Label rule                   : CPR > 1.0 AND DOP < 0.13 (min 5 pixels / patch)
+Patch size / stride / buffer : 64 / 32 / 64 px
 
-Train / Val / Test   : 1686 / 342 / 338
-  Train ice count    : 362 / 1686 (21.5%)
-  Val   ice count    : 77 / 342 (22.5%)
-  Test  ice count    : 101 / 338 (29.9%)
+POST-BUFFER TOTALS (HEADLINE DATASET):
+  Total patches              : 2366
+  Ice (positive)             : 540  (22.82%)
+  Non-ice (negative)         : 1826  (77.18%)
+pos_weight for BCE           : 3.66  (= 1324 neg / 362 pos, TRAIN split only)
 
-Spatial split grid   : (1, 20) (boundary buffer: 64 px)
-Leakage assertions   : PASSED (zero coordinate leakage AND zero pixel-extent overlap)
-Minimum pos check    : PASSED (all splits have >= 10 positives: Train=362, Val=77, Test=101)
+PRE-BUFFER EXTRACTION (SECONDARY REFERENCE):
+  Pre-buffer patches         : 2498 (585 positive [23.42%], 1913 negative [76.58%])
+  Dropped by boundary buffer : 132 patches (45 positive, 87 negative)
+
+SPLIT DISTRIBUTION (POST-BUFFER):
+Train / Val / Test           : 1686 / 342 / 338
+  Train ice count            : 362 / 1686 (21.47%)
+  Val   ice count            : 77 / 342 (22.51%)
+  Test  ice count            : 101 / 338 (29.88%)
+
+SPATIAL SPLIT INTEGRITY:
+  Spatial split grid         : (1, 20) (boundary buffer: 64 px)
+  Coordinate leakage         : PASSED (zero shared coordinates across splits)
+  Pixel-extent leakage       : PASSED (zero pixel-extent overlap across splits with 64px buffer)
+  Minimum positives check    : PASSED (all splits have >= 10 positives: Train=362, Val=77, Test=101)
