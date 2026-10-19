@@ -1,0 +1,17 @@
+[
+  {
+    "model": "CustomCNN (SMOKE TEST)",
+    "accuracy": "0.6509\u00b10.0000",
+    "precision": "0.4577\u00b10.0000",
+    "recall": "0.9109\u00b10.0000",
+    "f1": "0.6093\u00b10.0000",
+    "roc_auc": "0.7493\u00b10.0000",
+    "val_f1": "0.4545\u00b10.0000",
+    "support": "TP:92 FP:109 FN:9 TN:128 (Pos:101 Neg:237)",
+    "params": 618497,
+    "train_time": 31.1,
+    "epochs_used": 3,
+    "seeds": 1,
+    "data_source": "REAL"
+  }
+]

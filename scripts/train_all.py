@@ -107,7 +107,7 @@ def select_loss(pos_weight_val: float):
 # ──────────────────────────────────────────────────────────────────────────────
 # Data loading
 # ──────────────────────────────────────────────────────────────────────────────
-def load_split(name):
+def load_split(name, is_real=False):
     """Load a processed .npz split produced by ingest_and_split.py."""
     path = os.path.join(PROCESSED_DIR, f"{name}.npz")
     if not os.path.isfile(path):
@@ -118,7 +118,16 @@ def load_split(name):
     data = np.load(path)
     X, Y, C = data["images"], data["labels"], data["coords"]
 
-    # Stratified subsample to permit fast 30-epoch CPU training across 3 seeds.
+    if is_real:
+        # Load all real patches without synthetic subsampling
+        patches = list(zip(
+            X,
+            Y.tolist(),
+            [tuple(c) for c in C],
+        ))
+        return patches
+
+    # Stratified subsample to permit fast 30-epoch CPU training across 3 seeds on synthetic benchmark.
     # Preserves class balance (~25-29% positive ice) and valid non-empty splits.
     pos_idx = np.where(Y == 1)[0]
     neg_idx = np.where(Y == 0)[0]
@@ -235,11 +244,11 @@ def save_roc_curve(labels, probs, name):
 # ──────────────────────────────────────────────────────────────────────────────
 # Core training loop
 # ──────────────────────────────────────────────────────────────────────────────
-def train_model(model, train_loader, val_loader, criterion, name):
-    """Train one model; return (best_val_metrics, train_losses, val_losses, train_time)."""
+def train_model(model, train_loader, val_loader, criterion, name, epochs=EPOCHS):
+    """Train one model; return (best_val_metrics, train_losses, val_losses, train_time, param_count)."""
     param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n{'='*60}")
-    print(f"  Training: {name}  ({param_count:,} trainable params)")
+    print(f"  Training: {name}  ({param_count:,} trainable params) -- {epochs} epochs")
     print(f"  Device  : {DEVICE}")
     print(f"{'='*60}")
 
@@ -256,7 +265,7 @@ def train_model(model, train_loader, val_loader, criterion, name):
     best_metrics  = {}
     t0 = time.time()
 
-    for epoch in range(EPOCHS):
+    for epoch in range(epochs):
         # ── Training ──
         model.train()
         epoch_loss = 0.0
@@ -289,9 +298,9 @@ def train_model(model, train_loader, val_loader, criterion, name):
             best_metrics = val_metrics
             torch.save(model.state_dict(), best_ckpt)
 
-        if (epoch + 1) % 5 == 0 or epoch == 0:
+        if (epoch + 1) % 5 == 0 or epoch == 0 or epochs <= 5:
             print(
-                f"  Ep {epoch+1:3d}/{EPOCHS} | "
+                f"  Ep {epoch+1:3d}/{epochs} | "
                 f"Train {avg_train:.4f} | Val {avg_val:.4f} | "
                 f"F1 {val_metrics['f1']:.3f} | AUC {val_metrics['roc_auc']:.3f}"
             )
@@ -357,13 +366,24 @@ def main(args=None):
     if args is None:
         parser = argparse.ArgumentParser()
         parser.add_argument('--real', action='store_true', help='Use real data directories (processed_real, models_real, reports/real).')
-        parser.add_argument('--epochs', type=int, default=EPOCHS, help='Number of epochs.')
-        parser.add_argument('--seeds', type=int, nargs='+', default=[42, 123, 2024], help='Random seeds.')
+        parser.add_argument('--smoke', action='store_true', help='Run a 1-seed, 3-epoch smoke test on CustomCNN only (labeled SMOKE TEST).')
+        parser.add_argument('--epochs', type=int, default=None, help='Number of epochs.')
+        parser.add_argument('--seeds', type=int, nargs='+', default=None, help='Random seeds.')
         args, _ = parser.parse_known_args()
 
-    epochs_used = getattr(args, 'epochs', EPOCHS)
-    SEEDS = getattr(args, 'seeds', [42, 123, 2024])
+    is_smoke = getattr(args, 'smoke', False)
     is_real = getattr(args, 'real', False)
+
+    default_epochs = 3 if is_smoke else EPOCHS
+    default_seeds = [42] if is_smoke else [42, 123, 2024]
+
+    epochs_used = getattr(args, 'epochs', None)
+    if epochs_used is None:
+        epochs_used = default_epochs
+
+    SEEDS = getattr(args, 'seeds', None)
+    if SEEDS is None:
+        SEEDS = default_seeds
 
     if is_real:
         PROCESSED_DIR = "data/processed_real"
@@ -377,10 +397,14 @@ def main(args=None):
     os.makedirs(REPORTS_DIR,   exist_ok=True)
     os.makedirs(MODELS_DIR,    exist_ok=True)
     
+    mode_label = "SMOKE TEST" if is_smoke else "TRAINING"
+    print(f"\n{'='*65}")
+    print(f"STARTING {mode_label} ON {data_source} DATA (epochs={epochs_used}, seeds={SEEDS})")
+    print(f"{'='*65}")
     print(f"Loading processed splits from {PROCESSED_DIR}/ [source={data_source}] ...")
-    train_patches = load_split("train")
-    val_patches   = load_split("val")
-    test_patches  = load_split("test")
+    train_patches = load_split("train", is_real=is_real)
+    val_patches   = load_split("val", is_real=is_real)
+    test_patches  = load_split("test", is_real=is_real)
 
     train_ds = IcePatchDataset(train_patches, augment=True,  normalize=True)
     val_ds   = IcePatchDataset(val_patches,   augment=False, normalize=True)
@@ -389,7 +413,7 @@ def main(args=None):
     # Support checks
     val_pos = sum(p[1] for p in val_ds.patches)
     test_pos = sum(p[1] for p in test_ds.patches)
-    print(f"\nVal Positives: {val_pos}, Test Positives: {test_pos}")
+    print(f"Split sizes: Train={len(train_ds)}, Val={len(val_ds)} (pos={val_pos}), Test={len(test_ds)} (pos={test_pos})")
     
     low_support_flag = ""
     if val_pos < 10 or test_pos < 10:
@@ -407,10 +431,14 @@ def main(args=None):
     pos_weight_val = read_pos_weight(balance_filename)
     criterion = select_loss(pos_weight_val)
 
-    in_channels = train_ds.patches[0][0].shape[0]  # 2 for DFSAR-only
-    print(f"\nDetected input channels: {in_channels}")
+    in_channels = train_ds.patches[0][0].shape[0]
+    print(f"Detected input channels: {in_channels}")
 
     def get_models():
+        if is_smoke:
+            return [
+                ("CustomCNN", lambda: CustomCNN(in_channels=in_channels, num_classes=1)),
+            ]
         return [
             ("CustomCNN",         lambda: CustomCNN(in_channels=in_channels, num_classes=1)),
             ("ResNet_scratch",    lambda: IceResNet(in_channels=in_channels, num_classes=1, pretrained=False)),
@@ -425,13 +453,13 @@ def main(args=None):
     for name, factory in get_models():
         seed_results = []
         for seed in SEEDS:
-            print(f"\n=== Training {name} (Seed {seed}) ===")
+            print(f"\n=== {mode_label}: {name} (Seed {seed}) ===")
             torch.manual_seed(seed)
             np.random.seed(seed)
             model = factory().to(DEVICE)
             
             best_metrics, train_losses, val_losses, train_time, params = train_model(
-                model, train_loader, val_loader, criterion, name
+                model, train_loader, val_loader, criterion, name, epochs=epochs_used
             )
 
             model.load_state_dict(torch.load(os.path.join(MODELS_DIR, f"{name}.pth"), map_location=DEVICE))
@@ -459,12 +487,15 @@ def main(args=None):
         tn, fp, fn, tp = cm.ravel()
         support_str = f"TP:{tp} FP:{fp} FN:{fn} TN:{tn} (Pos:{tp+fn} Neg:{tn+fp})"
         
-        flag = flag_suspicious_metrics(seed_results[-1], name)
+        flag = flag_suspicious_metrics(seed_results[-1], name, pos_samples=test_pos)
         if flag:
             circularity_flags.append(flag)
+            print(f"  Flag check: {flag.strip()}")
+        else:
+            print("  Flag check: PASSED (no suspicious circularity or collapse flags)")
 
         row = {
-            "model":       name,
+            "model":       f"{name} ({mode_label})" if is_smoke else name,
             "accuracy":    f"{avg_acc:.4f}±{std_acc:.4f}",
             "precision":   f"{avg_prec:.4f}±{std_prec:.4f}",
             "recall":      f"{avg_rec:.4f}±{std_rec:.4f}",
@@ -480,18 +511,27 @@ def main(args=None):
         }
         summary_rows.append(row)
 
-        print(f"\n  Test metrics (Mean±Std) -- {name}:")
+        print(f"\n  Test metrics (Mean±Std) -- {row['model']}:")
         for k, v in row.items():
             if k not in ("model", "params", "train_time", "val_f1", "epochs_used", "seeds", "data_source"):
                 print(f"    {k:12s}: {v}")
         print(f"    params      : {params:,}")
 
-    with open(os.path.join(REPORTS_DIR, "training_summary.json"), "w") as f:
+    json_filename = "smoke_test_summary.json" if is_smoke else "training_summary.json"
+    with open(os.path.join(REPORTS_DIR, json_filename), "w", encoding="utf-8") as f:
         json.dump(summary_rows, f, indent=2)
 
+    title_str = "# SMOKE TEST SUMMARY (Not Final Results)\n\n" if is_smoke else "# Training Summary\n\n"
+    disclaimer_str = (
+        "> **[SMOKE TEST ONLY - NOT FINAL BENCHMARK RESULTS]:**\n"
+        f"> Proves real data flows through model architecture and training pipeline over {epochs_used} epochs.\n"
+        "> Do not report these metrics as final research results.\n\n"
+    ) if is_smoke else ""
+
     summary_md = (
-        "# Training Summary\n\n"
-        f"> **DATA SOURCE:** {data_source} "
+        title_str
+        + disclaimer_str
+        + f"> **DATA SOURCE:** {data_source} "
         + ("(physically-motivated SAR scene -- numbers demonstrate pipeline correctness only).\n\n" if not is_real else "(Real Chandrayaan-2 DFSAR L-band quad-pol data).\n\n")
         + f"> **Trained for {epochs_used} epochs, {len(SEEDS)} seeds, on {data_source} data**\n\n"
         + "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |\n"
@@ -508,11 +548,14 @@ def main(args=None):
         for flag in list(set(circularity_flags)):
             summary_md += flag + "\n"
 
-    with open(os.path.join(REPORTS_DIR, "training_summary.md"), "w") as f:
+    md_filename = "smoke_test_summary.md" if is_smoke else "training_summary.md"
+    out_md_path = os.path.join(REPORTS_DIR, md_filename)
+    with open(out_md_path, "w", encoding="utf-8") as f:
         f.write(summary_md)
 
-    print(f"\nAll results saved to {REPORTS_DIR}/")
-    print("Training run complete.")
+
+    print(f"\nAll results saved to {REPORTS_DIR}/{md_filename}")
+    print(f"{mode_label} run complete.")
     return summary_rows
 
 
