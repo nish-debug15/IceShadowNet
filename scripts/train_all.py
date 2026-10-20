@@ -61,6 +61,7 @@ BATCH_SIZE = 16
 EPOCHS     = 30
 LR         = 1e-3
 DEVICE     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+assert DEVICE.type == "cuda", f"CUDA not available — refusing to run on CPU. Got device: {DEVICE}"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -505,9 +506,9 @@ def main(args=None):
         )
         print(low_support_flag)
 
-    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=0)
-    val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
-    test_loader  = DataLoader(test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=2, pin_memory=True)
+    val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
+    test_loader  = DataLoader(test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
 
     balance_filename = "class_balance_real.txt" if is_real else "class_balance.txt"
     pos_weight_val = read_pos_weight(balance_filename)
