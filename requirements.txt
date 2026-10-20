@@ -1,8 +1,6 @@
 numpy
 scipy
 rasterio
-torch==2.12.0
-torchvision==0.27.0
 scikit-learn
 matplotlib
 opencv-python
