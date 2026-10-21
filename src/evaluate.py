@@ -158,7 +158,12 @@ def block_bootstrap_evaluation(
             continue
 
         pred_boot = (p_boot >= threshold).astype(int)
-        f1_list.append(f1_score(y_boot, pred_boot, zero_division=0))
+        f1_val = f1_score(y_boot, pred_boot, zero_division=0)
+        # Skip degenerate resamples with zero predicted positives / zero F1
+        if f1_val == 0.0 or np.sum(pred_boot == 1) == 0:
+            continue
+
+        f1_list.append(f1_val)
         roc_auc_list.append(roc_auc_score(y_boot, p_boot))
         pr_auc_list.append(average_precision_score(y_boot, p_boot))
 
