@@ -12,6 +12,7 @@ Protocols implemented:
   6. Ambiguity-removed evaluation on clean test set (patches with 1-4 positive pixels excluded).
   7. Classical baselines (Decision Tree, Logistic Regression) integrated for side-by-side comparison.
   8. Failure mode analysis saving 2 false-positive and 2 false-negative patch visualisations.
+  9. Differential learning rates for fine-tuning pretrained backbones (v2b: 1e-4 backbone, 1e-3 fc head).
 
 Usage:
     python -m scripts.train_all --real --epochs 30 --seeds 42 123 2024
