@@ -302,7 +302,7 @@ def save_failure_mode_images(test_data_dict, test_labels, test_probs, threshold,
 # ──────────────────────────────────────────────────────────────────────────────
 # Core training loop with ROC-AUC checkpointing & early stopping
 # ──────────────────────────────────────────────────────────────────────────────
-def train_model(model, train_loader, val_loader, criterion, name, epochs=EPOCHS, patience=5):
+def train_model(model, train_loader, val_loader, criterion, name, epochs=EPOCHS, patience=5, differential_lr=False):
     """
     Train one model with validation ROC-AUC checkpointing and early stopping.
     Returns: (best_metrics, train_losses, val_losses, train_time, param_count, best_epoch).
@@ -313,9 +313,18 @@ def train_model(model, train_loader, val_loader, criterion, name, epochs=EPOCHS,
     print(f"  Device  : {DEVICE}")
     print(f"{'='*60}")
 
-    optimizer = optim.Adam(
-        filter(lambda p: p.requires_grad, model.parameters()), lr=LR
-    )
+    if differential_lr and hasattr(model, 'model') and hasattr(model.model, 'fc'):
+        fc_params = list(model.model.fc.parameters())
+        backbone_params = [p for p in filter(lambda p: p.requires_grad, model.parameters()) if not any(p is fp for fp in fc_params)]
+        optimizer = optim.Adam([
+            {"params": backbone_params, "lr": 1e-4},
+            {"params": fc_params, "lr": 1e-3},
+        ])
+        print("  Optimizer: Adam with differential LR (backbone=1e-4, fc=1e-3)")
+    else:
+        optimizer = optim.Adam(
+            filter(lambda p: p.requires_grad, model.parameters()), lr=LR
+        )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="max", patience=3, factor=0.5
     )
@@ -434,10 +443,13 @@ def main(args=None):
         parser.add_argument('--smoke', action='store_true', help='Run a 1-seed, 3-epoch smoke test on CustomCNN only.')
         parser.add_argument('--epochs', type=int, default=None, help='Number of max epochs.')
         parser.add_argument('--seeds', type=int, nargs='+', default=None, help='Random seeds.')
+        parser.add_argument('--variant', type=str, default=None, choices=['v2a', 'v2b'], help='Specific ResNet_pretrained variant to train (v2a or v2b).')
         args, _ = parser.parse_known_args()
 
     is_smoke = getattr(args, 'smoke', False)
     is_real = getattr(args, 'real', False)
+    variant = getattr(args, 'variant', None)
+    differential_lr = (variant == 'v2b')
 
     default_epochs = 3 if is_smoke else EPOCHS
     default_seeds = [42] if is_smoke else [42, 123, 2024]
@@ -518,6 +530,14 @@ def main(args=None):
     print(f"Detected input channels: {in_channels}")
 
     def get_models():
+        if variant == "v2a":
+            return [
+                ("ResNet_pretrained_v2a", lambda: IceResNet(in_channels=in_channels, num_classes=1, pretrained=True)),
+            ]
+        elif variant == "v2b":
+            return [
+                ("ResNet_pretrained_v2b", lambda: IceResNet(in_channels=in_channels, num_classes=1, pretrained=True)),
+            ]
         if is_smoke:
             return [
                 ("CustomCNN", lambda: CustomCNN(in_channels=in_channels, num_classes=1)),
@@ -553,7 +573,7 @@ def main(args=None):
             model = factory().to(DEVICE)
 
             best_metrics, train_losses, val_losses, train_time, params, best_epoch = train_model(
-                model, train_loader, val_loader, criterion, run_tag, epochs=epochs_used, patience=5
+                model, train_loader, val_loader, criterion, run_tag, epochs=epochs_used, patience=5, differential_lr=differential_lr
             )
 
             # Load best checkpoint for evaluation
@@ -816,7 +836,8 @@ def main(args=None):
     final_report_md = summary_md + analysis_md
 
     # Save to disk
-    json_path = os.path.join(REPORTS_DIR, "training_summary.json")
+    json_filename = f"training_summary_{variant}.json" if variant else "training_summary.json"
+    json_path = os.path.join(REPORTS_DIR, json_filename)
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump({
             "primary": primary_records,
@@ -825,12 +846,15 @@ def main(args=None):
             "baselines_clean": baseline_clean,
         }, f, indent=2)
 
-    md_filename = "results_real.md" if is_real else "training_summary.md"
+    if variant:
+        md_filename = f"results_real_{variant}.md" if is_real else f"training_summary_{variant}.md"
+    else:
+        md_filename = "results_real.md" if is_real else "training_summary.md"
     out_md_path = os.path.join(REPORTS_DIR, md_filename)
     with open(out_md_path, "w", encoding="utf-8") as f:
         f.write(final_report_md)
 
-    if is_real:
+    if is_real and not variant:
         # Also write training_summary.md as alias
         with open(os.path.join(REPORTS_DIR, "training_summary.md"), "w", encoding="utf-8") as f:
             f.write(final_report_md)

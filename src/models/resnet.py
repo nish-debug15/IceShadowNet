@@ -23,23 +23,25 @@ class IceResNet(nn.Module):
             # Variant (b): Adapted from pretrained ImageNet weights
             self.model = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
             
-            # Modify first conv layer to accept `in_channels` instead of 3
-            # We initialize the new conv layer by averaging the RGB weights across channels
-            original_conv1 = self.model.conv1
-            self.model.conv1 = nn.Conv2d(in_channels, original_conv1.out_channels, 
-                                         kernel_size=original_conv1.kernel_size, 
-                                         stride=original_conv1.stride, 
-                                         padding=original_conv1.padding, 
-                                         bias=original_conv1.bias is not None)
-            
-            with torch.no_grad():
-                # Average the weights of the 3 ImageNet channels and replicate/slice for in_channels
-                avg_weight = torch.mean(original_conv1.weight, dim=1, keepdim=True)
-                self.model.conv1.weight.copy_(avg_weight.repeat(1, in_channels, 1, 1))
+            # Modify first conv layer only if in_channels != 3
+            # If in_channels == 3, keep the native pretrained conv1 weights as-is
+            if in_channels != 3:
+                original_conv1 = self.model.conv1
+                self.model.conv1 = nn.Conv2d(in_channels, original_conv1.out_channels, 
+                                             kernel_size=original_conv1.kernel_size, 
+                                             stride=original_conv1.stride, 
+                                             padding=original_conv1.padding, 
+                                             bias=original_conv1.bias is not None)
                 
-            # Freeze early layers strategy: Freeze layer1 and layer2, fine-tune layer3, layer4 and fc
-            for name, param in self.model.named_parameters():
-                if "layer1" in name or "layer2" in name or "conv1" in name or "bn1" in name:
+                with torch.no_grad():
+                    # Average the weights of the 3 ImageNet channels and replicate/slice for in_channels
+                    avg_weight = torch.mean(original_conv1.weight, dim=1, keepdim=True)
+                    self.model.conv1.weight.copy_(avg_weight.repeat(1, in_channels, 1, 1))
+                
+            # Freeze early layers strategy: freeze ONLY model.bn1, model.layer1, model.layer2 params.
+            # conv1, layer3, layer4, and fc all remain trainable. Exact references, no name-substring matching.
+            for module in [self.model.bn1, self.model.layer1, self.model.layer2]:
+                for param in module.parameters():
                     param.requires_grad = False
                     
         else:
@@ -50,6 +52,23 @@ class IceResNet(nn.Module):
         # Modify the final fully connected layer for binary classification
         num_ftrs = self.model.fc.in_features
         self.model.fc = nn.Linear(num_ftrs, num_classes)
+
+        # Print parameter summary at startup
+        self.print_parameter_summary()
+
+    def print_parameter_summary(self):
+        trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        frozen = sum(p.numel() for p in self.parameters() if not p.requires_grad)
+        total = trainable + frozen
+        print(f"Parameter Summary: Trainable={trainable:,} ({100*trainable/total:.1f}%), Frozen={frozen:,}, Total={total:,}")
+        for name, mod in [('conv1', self.model.conv1), ('bn1', self.model.bn1),
+                          ('layer1', self.model.layer1), ('layer2', self.model.layer2),
+                          ('layer3', self.model.layer3), ('layer4', self.model.layer4),
+                          ('fc', self.model.fc)]:
+            t = sum(p.numel() for p in mod.parameters() if p.requires_grad)
+            f = sum(p.numel() for p in mod.parameters() if not p.requires_grad)
+            req = "trainable" if t > 0 else "frozen"
+            print(f"  {name:7s}: {req:9s} (trainable={t:,}, frozen={f:,})")
         
     def forward(self, x):
         return self.model(x)
