@@ -116,6 +116,7 @@ def block_bootstrap_evaluation(
     n_bootstraps: int = 1000,
     confidence_level: float = 0.95,
     seed: int = 42,
+    skip_tp_zero: bool = False,
 ) -> dict:
     """
     Perform block-bootstrap evaluation by resampling entire spatial strips with replacement.
@@ -129,10 +130,14 @@ def block_bootstrap_evaluation(
         n_bootstraps: Number of bootstrap iterations (default: 1000).
         confidence_level: Confidence level for intervals (default: 0.95 for 95% CI).
         seed: Random seed for reproducibility.
+        skip_tp_zero: If True, skips resamples with TP=0 (conditional on >=1 detection, sensitivity only). Default False.
 
     Returns:
-        Dictionary containing point estimates and 95% CIs for F1, ROC-AUC, and PR-AUC.
+        Dictionary containing point estimates and 95% CIs for F1, ROC-AUC, and PR-AUC,
+        along with block counts and distinct resample metadata.
     """
+    from math import comb
+
     y_true = np.asarray(y_true).flatten().astype(int)
     y_probs = np.asarray(y_probs).flatten().astype(float)
     strip_ids = np.asarray(strip_ids).flatten()
@@ -145,6 +150,7 @@ def block_bootstrap_evaluation(
     f1_list = []
     roc_auc_list = []
     pr_auc_list = []
+    f1_conditional_list = []
 
     for _ in range(n_bootstraps):
         sampled_strips = rng.choice(unique_strips, size=len(unique_strips), replace=True)
@@ -153,14 +159,19 @@ def block_bootstrap_evaluation(
         y_boot = y_true[sampled_indices]
         p_boot = y_probs[sampled_indices]
 
-        # Require both classes to evaluate ranking metrics
+        # Default bootstrap keeps all resamples with >=1 ground-truth positive
         if len(np.unique(y_boot)) < 2:
             continue
 
         pred_boot = (p_boot >= threshold).astype(int)
         f1_val = f1_score(y_boot, pred_boot, zero_division=0)
-        # Skip degenerate resamples with zero predicted positives / zero F1
-        if f1_val == 0.0 or np.sum(pred_boot == 1) == 0:
+
+        # Track conditional F1 (conditional on >=1 detection, sensitivity only)
+        if f1_val > 0.0 and np.sum(pred_boot == 1) > 0:
+            f1_conditional_list.append(f1_val)
+
+        # Skip TP=0 only if explicit flag is set (sensitivity analysis only)
+        if skip_tp_zero and (f1_val == 0.0 or np.sum(pred_boot == 1) == 0):
             continue
 
         f1_list.append(f1_val)
@@ -188,7 +199,10 @@ def block_bootstrap_evaluation(
         roc_auc_mean = point["roc_auc"]
         pr_auc_mean = point["pr_auc"]
 
-    return {
+    n_blocks = len(unique_strips)
+    n_distinct = comb(2 * n_blocks - 1, n_blocks) if n_blocks > 0 else 0
+
+    res = {
         "f1_ci": f1_ci,
         "roc_auc_ci": roc_auc_ci,
         "pr_auc_ci": pr_auc_ci,
@@ -197,7 +211,23 @@ def block_bootstrap_evaluation(
         "pr_auc_mean": pr_auc_mean,
         "valid_rounds": len(f1_list),
         "total_rounds": n_bootstraps,
+        "n_blocks": n_blocks,
+        "n_distinct_resamples": n_distinct,
     }
+
+    if len(f1_conditional_list) > 0:
+        res["f1_conditional_ci"] = (
+            float(np.percentile(f1_conditional_list, low_pct)),
+            float(np.percentile(f1_conditional_list, high_pct)),
+        )
+        res["f1_conditional_mean"] = float(np.mean(f1_conditional_list))
+        res["n_valid_conditional"] = len(f1_conditional_list)
+    else:
+        res["f1_conditional_ci"] = f1_ci
+        res["f1_conditional_mean"] = f1_mean
+        res["n_valid_conditional"] = 0
+
+    return res
 
 
 def get_strip_ids_from_coords(coords: np.ndarray, grid_size: tuple = (1, 20)) -> np.ndarray:
