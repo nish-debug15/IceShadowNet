@@ -12,6 +12,11 @@ data/processed_real/
 __pycache__/
 *.py[cod]
 *.pyo
+.pytest_cache/
+
+# Logs
+logs/
+*.log
 
 # Editor / OS
 .DS_Store
