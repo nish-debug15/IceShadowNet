@@ -83,8 +83,8 @@ for r in all_primary:
     np.testing.assert_allclose(full_eval['roc_auc'], r['roc_auc'], rtol=1e-4, atol=1e-4, err_msg=f"ROC-AUC mismatch for {model_name} s={seed}")
     np.testing.assert_allclose(full_eval['pr_auc'], r['pr_auc'], rtol=1e-4, atol=1e-4, err_msg=f"PR-AUC mismatch for {model_name} s={seed}")
 
-    # Re-run fixed bootstrap
-    boot = block_bootstrap_evaluation(labels, probs, test_strips, threshold=th, n_bootstraps=1000, seed=seed)
+    # Re-run fixed bootstrap (conditional on >=1 detection)
+    boot = block_bootstrap_evaluation(labels, probs, test_strips, threshold=th, n_bootstraps=1000, seed=seed, skip_tp_zero=True)
 
     new_prim_row = dict(r)
     new_prim_row['f1_ci_orig'] = r['f1_ci']
@@ -102,7 +102,7 @@ for r in all_primary:
         np.testing.assert_allclose(clean_eval['roc_auc'], clean_orig_r['roc_auc'], rtol=1e-4, atol=1e-4, err_msg=f"Clean ROC-AUC mismatch for {model_name} s={seed}")
         np.testing.assert_allclose(clean_eval['pr_auc'], clean_orig_r['pr_auc'], rtol=1e-4, atol=1e-4, err_msg=f"Clean PR-AUC mismatch for {model_name} s={seed}")
 
-        clean_boot = block_bootstrap_evaluation(labels[clean_mask], probs[clean_mask], test_strips_clean, threshold=th, n_bootstraps=1000, seed=seed)
+        clean_boot = block_bootstrap_evaluation(labels[clean_mask], probs[clean_mask], test_strips_clean, threshold=th, n_bootstraps=1000, seed=seed, skip_tp_zero=True)
         new_clean_row = dict(clean_orig_r)
         new_clean_row['f1_ci_orig'] = clean_orig_r['f1_ci']
         new_clean_row['f1_ci'] = f"[{clean_boot['f1_ci'][0]:.4f}, {clean_boot['f1_ci'][1]:.4f}]"
@@ -114,7 +114,9 @@ for r in all_primary:
     print(f"PASS: {model_name:22} s={seed:4d} | Point estimates exact match | F1 CI: {new_prim_row['f1_ci_orig']} -> {new_prim_row['f1_ci']} (valid={boot['valid_rounds']}/1000)")
 
 # Save reports/real/results_real_ci_fixed.md
-md = """# REAL-DATA BENCHMARK RESULTS (Fixed F1 Bootstrap CI)
+md = """# SUPERSEDED: CIs conditional on >=1 detection (censors lower tail). Use results_real_ci_all.md.
+
+# REAL-DATA BENCHMARK RESULTS (Fixed F1 Bootstrap CI)
 
 > **DATA SOURCE:** REAL (Chandrayaan-2 DFSAR L1A quad-pol SLI, lines 100,000–140,000).
 > **Protocol:** Max 30 epochs, early stopping on Val ROC-AUC (patience 5), Val-tuned decision threshold, 95% block-bootstrap CIs across strips (1000 rounds).

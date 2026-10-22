@@ -322,7 +322,7 @@ md_strip += """
   - **Logistic Regression**: $\\text{TP} = 0, \\text{FP} = 0, \\text{FN} = 5, \\text{TN} = 109 \\implies \\text{F1} = 0.0000$.
   - **ResNet_scratch**: Seed 42 and Seed 123 have $\\text{TP} = 0$; Seed 2024 has $\\text{TP} = 1, \\text{FP} = 9 \\implies \\text{F1} = 0.1333$.
   - **ResNet_pretrained_v2b**: Seed 42 and Seed 123 have $\\text{TP} = 0$; Seed 2024 has $\\text{TP} = 1, \\text{FP} = 17 \\implies \\text{F1} = 0.0870$.
-  - **ResNet_pretrained (Orig)**: Low thresholds produce high false positives ($\text{FP} \in [23, 41]$) picking up 1 to 3 positives ($\text{TP} \in [1, 3]$).
+  - **ResNet_pretrained (Orig)**: Low thresholds produce high false positives ($\\text{FP} \\in [23, 41]$) picking up 1 to 3 positives ($\\text{TP} \\in [1, 3]$).
   - **Decision Tree**: High false positives ($\\text{FP} = 50$) with $\\text{TP} = 1 \\implies \\text{F1} = 0.0357$.
 - **Conclusion:** Strip 14 does **not** have $\\text{TP}=0$ for every single model, but has $\\text{TP}=0$ across **11 of the 17 total evaluated runs (64.7%)**, including 100% of CustomCNN, 100% of ResNet_pretrained_v2a, and Logistic Regression. In a 3-block bootstrap, $(1/3)^3 = 1/27 \\approx 3.7\\%$ of resamples select only Strip 14, directly explaining why the 2.5th percentile lower bound of F1 drops to `0.0000` under the default bootstrap procedure.
 """
