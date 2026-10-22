@@ -1,0 +1,58 @@
+{
+  "status": "ALL_STAGES_EXPORTED_FROM_RAW_DFSAR",
+  "crop_dimensions": {
+    "height": 512,
+    "width": 116,
+    "lines_start": 100000
+  },
+  "stages": [
+    {
+      "stage": 1,
+      "name": "Raw HH Log-Intensity",
+      "image": "data/pipeline_stages/stage1_raw_hh.png",
+      "size_kb": 54.1064453125
+    },
+    {
+      "stage": 2,
+      "name": "Raw HV Symmetrized",
+      "image": "data/pipeline_stages/stage2_raw_hv.png",
+      "size_kb": 52.3916015625
+    },
+    {
+      "stage": 3,
+      "name": "Raw VV Log-Intensity",
+      "image": "data/pipeline_stages/stage3_raw_vv.png",
+      "size_kb": 54.3134765625
+    },
+    {
+      "stage": 4,
+      "name": "Multilooked Radar RGB (W=7)",
+      "image": "data/pipeline_stages/stage4_multilooked.png",
+      "size_kb": 38.3330078125
+    },
+    {
+      "stage": 5,
+      "name": "Circular Polarization Ratio (CPR)",
+      "image": "data/pipeline_stages/stage5_cpr.png",
+      "size_kb": 39.8798828125
+    },
+    {
+      "stage": 6,
+      "name": "Degree of Polarization (DOP)",
+      "image": "data/pipeline_stages/stage6_dop.png",
+      "size_kb": 43.4189453125
+    },
+    {
+      "stage": 7,
+      "name": "Binary Candidate Ice Mask",
+      "image": "data/pipeline_stages/stage7_label_mask.png",
+      "size_kb": 19.720703125
+    },
+    {
+      "stage": 8,
+      "name": "Patch Extraction Grid",
+      "image": "data/pipeline_stages/stage8_patch_grid.png",
+      "size_kb": 42.9091796875
+    }
+  ]
+}

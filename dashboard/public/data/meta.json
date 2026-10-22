@@ -1,0 +1,220 @@
+{
+  "project": "IceShadowNet",
+  "description": "Lunar Polar Permanently Shadowed Region (PSR) Ice Detection via DFSAR SAR Imagery",
+  "data_source": "Chandrayaan-2 DFSAR L1A quad-pol SLI (lines 100,000\u2013140,000)",
+  "created_at": "2026-10-22 13:26:06",
+  "features": {
+    "model_input_features": [
+      "hh_mean",
+      "hv_mean",
+      "vv_mean"
+    ],
+    "feature_extraction_logic": "Spatial mean of raw radar log-intensities [HH, HV, VV] per 64x64 patch.",
+    "derived_polarimetry_circularity_guard": "CPR (Circular Polarization Ratio) and DOP (Degree of Polarization) are derived purely to generate ground truth labels via physical thresholds (CPR > 1.0, DOP < 0.13). They are STRICTLY excluded from all model inputs to prevent circular reasoning."
+  },
+  "classical_baselines": {
+    "decision_tree": {
+      "model": "DecisionTreeClassifier(max_depth=3, class_weight='balanced', random_state=42)",
+      "features": [
+        "hh_mean",
+        "hv_mean",
+        "vv_mean"
+      ],
+      "threshold_tuning": "Tuned on validation set to maximize F1 (threshold = 0.42)"
+    },
+    "logistic_regression": {
+      "model": "LogisticRegression(class_weight='balanced', random_state=42, max_iter=1000)",
+      "features": [
+        "hh_mean",
+        "hv_mean",
+        "vv_mean"
+      ],
+      "threshold_tuning": "Tuned on validation set to maximize F1 (threshold = 0.50)"
+    },
+    "oracle_baseline": {
+      "exists": true,
+      "name": "ORACLE (label rule, not a model)",
+      "definition": "Deterministic evaluation of true ice fraction >= 5 / 4096 (5 pixels in 64x64 patch).",
+      "purpose": "Upper-bound sanity check on dataset labeling mechanics (scores 1.0 across all metrics).",
+      "is_machine_learning_model": false
+    }
+  },
+  "display_scaling": {
+    "vmin": 2.0,
+    "vmax": 7.0,
+    "units": "log10 intensity",
+    "mapping": "np.clip((I - 2.0) / 5.0, 0, 1) mapped to [0, 255] RGB composite (R=HH, G=HV, B=VV)"
+  },
+  "auc_verification_summary": {
+    "total_runs": 15,
+    "all_match_device": true,
+    "device": "cuda",
+    "records": [
+      {
+        "model": "CustomCNN",
+        "seed": 42,
+        "stored_auc": 0.7468354430379747,
+        "recomputed_auc_device": 0.7468354430379747,
+        "recomputed_auc_cpu": 0.7468772193675064,
+        "diff_device": 0.0,
+        "diff_cpu": 4.1776329531728607e-05,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "CustomCNN",
+        "seed": 123,
+        "stored_auc": 0.7508459706730167,
+        "recomputed_auc_device": 0.7508459706730167,
+        "recomputed_auc_cpu": 0.7508459706730167,
+        "diff_device": 0.0,
+        "diff_cpu": 0.0,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "CustomCNN",
+        "seed": 2024,
+        "stored_auc": 0.7714834774616702,
+        "recomputed_auc_device": 0.7714834774616702,
+        "recomputed_auc_cpu": 0.7714834774616702,
+        "diff_device": 0.0,
+        "diff_cpu": 0.0,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_scratch",
+        "seed": 42,
+        "stored_auc": 0.738772611438359,
+        "recomputed_auc_device": 0.738772611438359,
+        "recomputed_auc_cpu": 0.7388143877678907,
+        "diff_device": 0.0,
+        "diff_cpu": 4.1776329531617584e-05,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_scratch",
+        "seed": 123,
+        "stored_auc": 0.7551489326147804,
+        "recomputed_auc_device": 0.7551489326147804,
+        "recomputed_auc_cpu": 0.7551071562852487,
+        "diff_device": 0.0,
+        "diff_cpu": 4.1776329531728607e-05,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_scratch",
+        "seed": 2024,
+        "stored_auc": 0.7655094623386389,
+        "recomputed_auc_device": 0.7655094623386389,
+        "recomputed_auc_cpu": 0.7655094623386389,
+        "diff_device": 0.0,
+        "diff_cpu": 0.0,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_pretrained",
+        "seed": 42,
+        "stored_auc": 0.6591469273509629,
+        "recomputed_auc_device": 0.6591469273509629,
+        "recomputed_auc_cpu": 0.6591887036804945,
+        "diff_device": 0.0,
+        "diff_cpu": 4.1776329531617584e-05,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_pretrained",
+        "seed": 123,
+        "stored_auc": 0.6571834398629736,
+        "recomputed_auc_device": 0.6571834398629736,
+        "recomputed_auc_cpu": 0.6572669925220369,
+        "diff_device": 0.0,
+        "diff_cpu": 8.355265906334619e-05,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_pretrained",
+        "seed": 2024,
+        "stored_auc": 0.6811630530141621,
+        "recomputed_auc_device": 0.6811630530141621,
+        "recomputed_auc_cpu": 0.6813301583322888,
+        "diff_device": 0.0,
+        "diff_cpu": 0.00016710531812669238,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_pretrained_v2a",
+        "seed": 42,
+        "stored_auc": 0.7020094414504742,
+        "recomputed_auc_device": 0.7020094414504742,
+        "recomputed_auc_cpu": 0.7020512177800059,
+        "diff_device": 0.0,
+        "diff_cpu": 4.1776329531728607e-05,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_pretrained_v2a",
+        "seed": 123,
+        "stored_auc": 0.6978735848268371,
+        "recomputed_auc_device": 0.6978735848268371,
+        "recomputed_auc_cpu": 0.6978318084973054,
+        "diff_device": 0.0,
+        "diff_cpu": 4.1776329531728607e-05,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_pretrained_v2a",
+        "seed": 2024,
+        "stored_auc": 0.6630321259974099,
+        "recomputed_auc_device": 0.6630321259974099,
+        "recomputed_auc_cpu": 0.6628650206792831,
+        "diff_device": 0.0,
+        "diff_cpu": 0.0001671053181268034,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_pretrained_v2b",
+        "seed": 42,
+        "stored_auc": 0.6477837657183438,
+        "recomputed_auc_device": 0.6477837657183438,
+        "recomputed_auc_cpu": 0.647909094706939,
+        "diff_device": 0.0,
+        "diff_cpu": 0.00012532898859518582,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_pretrained_v2b",
+        "seed": 123,
+        "stored_auc": 0.6874712787734469,
+        "recomputed_auc_device": 0.6874712787734469,
+        "recomputed_auc_cpu": 0.6877219367506371,
+        "diff_device": 0.0,
+        "diff_cpu": 0.0002506579771901496,
+        "device_used": "cuda",
+        "match_4dec": true
+      },
+      {
+        "model": "ResNet_pretrained_v2b",
+        "seed": 2024,
+        "stored_auc": 0.6700087730292017,
+        "recomputed_auc_device": 0.6700087730292017,
+        "recomputed_auc_cpu": 0.6697581150520117,
+        "diff_device": 0.0,
+        "diff_cpu": 0.00025065797719003857,
+        "device_used": "cuda",
+        "match_4dec": true
+      }
+    ]
+  }
+}

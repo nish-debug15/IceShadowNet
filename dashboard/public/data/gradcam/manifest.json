@@ -1,0 +1,706 @@
+{
+  "slots_count": 28,
+  "unique_patches": 24,
+  "slots": [
+    {
+      "slot": "failure_fp1",
+      "category": "Failure FP #1",
+      "patch_idx": 217,
+      "strip_id": 10,
+      "coords": [
+        21728,
+        32
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7644397616386414,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/failure_fp1.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.519957959651947,
+        "gradcam_image": "data/gradcam/untrained/failure_fp1.png"
+      }
+    },
+    {
+      "slot": "failure_fp2",
+      "category": "Failure FP #2",
+      "patch_idx": 34,
+      "strip_id": 6,
+      "coords": [
+        12608,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7532727718353271,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/failure_fp2.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5223992466926575,
+        "gradcam_image": "data/gradcam/untrained/failure_fp2.png"
+      }
+    },
+    {
+      "slot": "failure_fn1",
+      "category": "Failure FN #1",
+      "patch_idx": 277,
+      "strip_id": 14,
+      "coords": [
+        28864,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.0011476179352030158,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/failure_fn1.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5202585458755493,
+        "gradcam_image": "data/gradcam/untrained/failure_fn1.png"
+      }
+    },
+    {
+      "slot": "failure_fn2",
+      "category": "Failure FN #2",
+      "patch_idx": 275,
+      "strip_id": 14,
+      "coords": [
+        28832,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.0034750786144286394,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/failure_fn2.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5229701399803162,
+        "gradcam_image": "data/gradcam/untrained/failure_fn2.png"
+      }
+    },
+    {
+      "slot": "tp_1",
+      "category": "True Positive #1",
+      "patch_idx": 219,
+      "strip_id": 10,
+      "coords": [
+        21760,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.8343508839607239,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/tp_1.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5215089321136475,
+        "gradcam_image": "data/gradcam/untrained/tp_1.png"
+      }
+    },
+    {
+      "slot": "tp_2",
+      "category": "True Positive #2",
+      "patch_idx": 221,
+      "strip_id": 10,
+      "coords": [
+        21792,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.802954912185669,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/tp_2.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5219922065734863,
+        "gradcam_image": "data/gradcam/untrained/tp_2.png"
+      }
+    },
+    {
+      "slot": "tp_3",
+      "category": "True Positive #3",
+      "patch_idx": 215,
+      "strip_id": 10,
+      "coords": [
+        21696,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7763983011245728,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/tp_3.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5199323296546936,
+        "gradcam_image": "data/gradcam/untrained/tp_3.png"
+      }
+    },
+    {
+      "slot": "tp_4",
+      "category": "True Positive #4",
+      "patch_idx": 104,
+      "strip_id": 6,
+      "coords": [
+        13728,
+        0
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7614812850952148,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/tp_4.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5199258923530579,
+        "gradcam_image": "data/gradcam/untrained/tp_4.png"
+      }
+    },
+    {
+      "slot": "tp_5",
+      "category": "True Positive #5",
+      "patch_idx": 52,
+      "strip_id": 6,
+      "coords": [
+        12896,
+        0
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7496069073677063,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/tp_5.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5224224925041199,
+        "gradcam_image": "data/gradcam/untrained/tp_5.png"
+      }
+    },
+    {
+      "slot": "tp_6",
+      "category": "True Positive #6",
+      "patch_idx": 56,
+      "strip_id": 6,
+      "coords": [
+        12960,
+        0
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7489458918571472,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/tp_6.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5217146873474121,
+        "gradcam_image": "data/gradcam/untrained/tp_6.png"
+      }
+    },
+    {
+      "slot": "fp_1",
+      "category": "False Positive #1",
+      "patch_idx": 217,
+      "strip_id": 10,
+      "coords": [
+        21728,
+        32
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7644397616386414,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/fp_1.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.519957959651947,
+        "gradcam_image": "data/gradcam/untrained/fp_1.png"
+      }
+    },
+    {
+      "slot": "fp_2",
+      "category": "False Positive #2",
+      "patch_idx": 34,
+      "strip_id": 6,
+      "coords": [
+        12608,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7532727718353271,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/fp_2.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5223992466926575,
+        "gradcam_image": "data/gradcam/untrained/fp_2.png"
+      }
+    },
+    {
+      "slot": "fp_3",
+      "category": "False Positive #3",
+      "patch_idx": 53,
+      "strip_id": 6,
+      "coords": [
+        12896,
+        32
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7356016039848328,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/fp_3.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.524848997592926,
+        "gradcam_image": "data/gradcam/untrained/fp_3.png"
+      }
+    },
+    {
+      "slot": "fp_4",
+      "category": "False Positive #4",
+      "patch_idx": 54,
+      "strip_id": 6,
+      "coords": [
+        12928,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.718077540397644,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/fp_4.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5221732258796692,
+        "gradcam_image": "data/gradcam/untrained/fp_4.png"
+      }
+    },
+    {
+      "slot": "fp_5",
+      "category": "False Positive #5",
+      "patch_idx": 36,
+      "strip_id": 6,
+      "coords": [
+        12640,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7136338949203491,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/fp_5.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5221158862113953,
+        "gradcam_image": "data/gradcam/untrained/fp_5.png"
+      }
+    },
+    {
+      "slot": "fp_6",
+      "category": "False Positive #6",
+      "patch_idx": 40,
+      "strip_id": 6,
+      "coords": [
+        12704,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.7063364386558533,
+        "threshold": 0.45,
+        "prediction": 1,
+        "gradcam_image": "data/gradcam/trained/fp_6.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5231732726097107,
+        "gradcam_image": "data/gradcam/untrained/fp_6.png"
+      }
+    },
+    {
+      "slot": "fn_1",
+      "category": "False Negative #1",
+      "patch_idx": 277,
+      "strip_id": 14,
+      "coords": [
+        28864,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.0011476179352030158,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/fn_1.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5202585458755493,
+        "gradcam_image": "data/gradcam/untrained/fn_1.png"
+      }
+    },
+    {
+      "slot": "fn_2",
+      "category": "False Negative #2",
+      "patch_idx": 275,
+      "strip_id": 14,
+      "coords": [
+        28832,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.0034750786144286394,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/fn_2.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5229701399803162,
+        "gradcam_image": "data/gradcam/untrained/fn_2.png"
+      }
+    },
+    {
+      "slot": "fn_3",
+      "category": "False Negative #3",
+      "patch_idx": 281,
+      "strip_id": 14,
+      "coords": [
+        28928,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.0066472189500927925,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/fn_3.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5225372314453125,
+        "gradcam_image": "data/gradcam/untrained/fn_3.png"
+      }
+    },
+    {
+      "slot": "fn_4",
+      "category": "False Negative #4",
+      "patch_idx": 231,
+      "strip_id": 14,
+      "coords": [
+        28128,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.011399311944842339,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/fn_4.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.523764967918396,
+        "gradcam_image": "data/gradcam/untrained/fn_4.png"
+      }
+    },
+    {
+      "slot": "fn_5",
+      "category": "False Negative #5",
+      "patch_idx": 229,
+      "strip_id": 14,
+      "coords": [
+        28096,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.011616408824920654,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/fn_5.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5219286680221558,
+        "gradcam_image": "data/gradcam/untrained/fn_5.png"
+      }
+    },
+    {
+      "slot": "fn_6",
+      "category": "False Negative #6",
+      "patch_idx": 139,
+      "strip_id": 10,
+      "coords": [
+        20480,
+        32
+      ],
+      "true_label": 1,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 0.08972062170505524,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/fn_6.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5231454968452454,
+        "gradcam_image": "data/gradcam/untrained/fn_6.png"
+      }
+    },
+    {
+      "slot": "tn_1",
+      "category": "True Negative #1",
+      "patch_idx": 244,
+      "strip_id": 14,
+      "coords": [
+        28352,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 2.324567049072357e-06,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/tn_1.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5218268632888794,
+        "gradcam_image": "data/gradcam/untrained/tn_1.png"
+      }
+    },
+    {
+      "slot": "tn_2",
+      "category": "True Negative #2",
+      "patch_idx": 262,
+      "strip_id": 14,
+      "coords": [
+        28640,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 7.104117685230449e-06,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/tn_2.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5234262347221375,
+        "gradcam_image": "data/gradcam/untrained/tn_2.png"
+      }
+    },
+    {
+      "slot": "tn_3",
+      "category": "True Negative #3",
+      "patch_idx": 226,
+      "strip_id": 14,
+      "coords": [
+        28064,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 7.675711458432488e-06,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/tn_3.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5228171944618225,
+        "gradcam_image": "data/gradcam/untrained/tn_3.png"
+      }
+    },
+    {
+      "slot": "tn_4",
+      "category": "True Negative #4",
+      "patch_idx": 260,
+      "strip_id": 14,
+      "coords": [
+        28608,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 8.63093100633705e-06,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/tn_4.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.52345210313797,
+        "gradcam_image": "data/gradcam/untrained/tn_4.png"
+      }
+    },
+    {
+      "slot": "tn_5",
+      "category": "True Negative #5",
+      "patch_idx": 242,
+      "strip_id": 14,
+      "coords": [
+        28320,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 1.094066919904435e-05,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/tn_5.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5210892558097839,
+        "gradcam_image": "data/gradcam/untrained/tn_5.png"
+      }
+    },
+    {
+      "slot": "tn_6",
+      "category": "True Negative #6",
+      "patch_idx": 246,
+      "strip_id": 14,
+      "coords": [
+        28384,
+        0
+      ],
+      "true_label": 0,
+      "trained_model": {
+        "name": "CustomCNN (seed 2024 trained)",
+        "weights": "models_real/CustomCNN_seed2024.pth",
+        "score": 1.4808596461080015e-05,
+        "threshold": 0.45,
+        "prediction": 0,
+        "gradcam_image": "data/gradcam/trained/tn_6.png"
+      },
+      "untrained_model": {
+        "name": "CustomCNN (seed 2024 random initialization)",
+        "weights": "randomly initialized (torch.manual_seed(2024))",
+        "score": 0.5223044157028198,
+        "gradcam_image": "data/gradcam/untrained/tn_6.png"
+      }
+    }
+  ]
+}

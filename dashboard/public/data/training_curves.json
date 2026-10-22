@@ -1,0 +1,448 @@
+{
+  "metadata": {
+    "logging_granularity": "Logs report Epoch 1, and every 5th epoch thereafter (e.g. [1, 5, 10, 15]) until early stopping (patience=5 without validation ROC-AUC improvement). Values are exact un-interpolated log records.",
+    "interpolation_applied": false,
+    "total_runs_parsed": 15
+  },
+  "runs": [
+    {
+      "model": "CustomCNN",
+      "seed": 42,
+      "best_epoch": 2,
+      "logged_epochs": [
+        1,
+        5
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.1577,
+          "val_loss": 1.1146,
+          "val_auc": 0.6523,
+          "val_f1": 0.233
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.759,
+          "val_loss": 2.2579,
+          "val_auc": 0.601,
+          "val_f1": 0.0
+        }
+      ]
+    },
+    {
+      "model": "CustomCNN",
+      "seed": 123,
+      "best_epoch": 1,
+      "logged_epochs": [
+        1,
+        5
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.0578,
+          "val_loss": 2.457,
+          "val_auc": 0.6706,
+          "val_f1": 0.0
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.7516,
+          "val_loss": 1.1566,
+          "val_auc": 0.6663,
+          "val_f1": 0.384
+        }
+      ]
+    },
+    {
+      "model": "CustomCNN",
+      "seed": 2024,
+      "best_epoch": 12,
+      "logged_epochs": [
+        1,
+        5,
+        10,
+        15
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.0796,
+          "val_loss": 1.9566,
+          "val_auc": 0.6233,
+          "val_f1": 0.0
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.7611,
+          "val_loss": 1.7188,
+          "val_auc": 0.6575,
+          "val_f1": 0.368
+        },
+        {
+          "epoch": 10,
+          "train_loss": 0.7537,
+          "val_loss": 1.2292,
+          "val_auc": 0.6725,
+          "val_f1": 0.385
+        },
+        {
+          "epoch": 15,
+          "train_loss": 0.7088,
+          "val_loss": 6.4257,
+          "val_auc": 0.6091,
+          "val_f1": 0.0
+        }
+      ]
+    },
+    {
+      "model": "ResNet_scratch",
+      "seed": 42,
+      "best_epoch": 7,
+      "logged_epochs": [
+        1,
+        5,
+        10
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.0105,
+          "val_loss": 1.358,
+          "val_auc": 0.5329,
+          "val_f1": 0.365
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.7494,
+          "val_loss": 1.6587,
+          "val_auc": 0.6353,
+          "val_f1": 0.212
+        },
+        {
+          "epoch": 10,
+          "train_loss": 0.6373,
+          "val_loss": 2.0105,
+          "val_auc": 0.5547,
+          "val_f1": 0.179
+        }
+      ]
+    },
+    {
+      "model": "ResNet_scratch",
+      "seed": 123,
+      "best_epoch": 4,
+      "logged_epochs": [
+        1,
+        5
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.1026,
+          "val_loss": 1.2079,
+          "val_auc": 0.5185,
+          "val_f1": 0.368
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.7369,
+          "val_loss": 1.2494,
+          "val_auc": 0.603,
+          "val_f1": 0.414
+        }
+      ]
+    },
+    {
+      "model": "ResNet_scratch",
+      "seed": 2024,
+      "best_epoch": 13,
+      "logged_epochs": [
+        1,
+        5,
+        10,
+        15
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.0535,
+          "val_loss": 2.1178,
+          "val_auc": 0.5334,
+          "val_f1": 0.0
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.7734,
+          "val_loss": 1.2107,
+          "val_auc": 0.559,
+          "val_f1": 0.365
+        },
+        {
+          "epoch": 10,
+          "train_loss": 0.6863,
+          "val_loss": 1.3635,
+          "val_auc": 0.622,
+          "val_f1": 0.371
+        },
+        {
+          "epoch": 15,
+          "train_loss": 0.6533,
+          "val_loss": 1.3406,
+          "val_auc": 0.5854,
+          "val_f1": 0.386
+        }
+      ]
+    },
+    {
+      "model": "ResNet_pretrained",
+      "seed": 42,
+      "best_epoch": 2,
+      "logged_epochs": [
+        1,
+        5
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.3456,
+          "val_loss": 1.1983,
+          "val_auc": 0.4893,
+          "val_f1": 0.15
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.9235,
+          "val_loss": 1.2923,
+          "val_auc": 0.4965,
+          "val_f1": 0.317
+        }
+      ]
+    },
+    {
+      "model": "ResNet_pretrained",
+      "seed": 123,
+      "best_epoch": 9,
+      "logged_epochs": [
+        1,
+        5,
+        10
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.3683,
+          "val_loss": 1.2276,
+          "val_auc": 0.5043,
+          "val_f1": 0.3
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.8997,
+          "val_loss": 1.2715,
+          "val_auc": 0.5339,
+          "val_f1": 0.328
+        },
+        {
+          "epoch": 10,
+          "train_loss": 0.8232,
+          "val_loss": 1.3878,
+          "val_auc": 0.548,
+          "val_f1": 0.332
+        }
+      ]
+    },
+    {
+      "model": "ResNet_pretrained",
+      "seed": 2024,
+      "best_epoch": 6,
+      "logged_epochs": [
+        1,
+        5,
+        10
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.3339,
+          "val_loss": 1.1955,
+          "val_auc": 0.5196,
+          "val_f1": 0.196
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.9265,
+          "val_loss": 1.2277,
+          "val_auc": 0.5194,
+          "val_f1": 0.332
+        },
+        {
+          "epoch": 10,
+          "train_loss": 0.8243,
+          "val_loss": 1.2725,
+          "val_auc": 0.5222,
+          "val_f1": 0.306
+        }
+      ]
+    },
+    {
+      "model": "ResNet_pretrained_v2a",
+      "seed": 42,
+      "best_epoch": 7,
+      "logged_epochs": [
+        1,
+        5,
+        10
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.2348,
+          "val_loss": 1.182,
+          "val_auc": 0.5946,
+          "val_f1": 0.371
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.8433,
+          "val_loss": 1.1038,
+          "val_auc": 0.6315,
+          "val_f1": 0.405
+        },
+        {
+          "epoch": 10,
+          "train_loss": 0.6815,
+          "val_loss": 1.2069,
+          "val_auc": 0.6203,
+          "val_f1": 0.385
+        }
+      ]
+    },
+    {
+      "model": "ResNet_pretrained_v2a",
+      "seed": 123,
+      "best_epoch": 4,
+      "logged_epochs": [
+        1,
+        5
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.2063,
+          "val_loss": 1.1061,
+          "val_auc": 0.6105,
+          "val_f1": 0.384
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.799,
+          "val_loss": 1.1142,
+          "val_auc": 0.6495,
+          "val_f1": 0.415
+        }
+      ]
+    },
+    {
+      "model": "ResNet_pretrained_v2a",
+      "seed": 2024,
+      "best_epoch": 2,
+      "logged_epochs": [
+        1,
+        5
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.2402,
+          "val_loss": 1.1578,
+          "val_auc": 0.5926,
+          "val_f1": 0.4
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.7639,
+          "val_loss": 1.1205,
+          "val_auc": 0.6103,
+          "val_f1": 0.391
+        }
+      ]
+    },
+    {
+      "model": "ResNet_pretrained_v2b",
+      "seed": 42,
+      "best_epoch": 1,
+      "logged_epochs": [
+        1,
+        5
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.0713,
+          "val_loss": 1.2689,
+          "val_auc": 0.5947,
+          "val_f1": 0.389
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.8138,
+          "val_loss": 1.2778,
+          "val_auc": 0.5325,
+          "val_f1": 0.372
+        }
+      ]
+    },
+    {
+      "model": "ResNet_pretrained_v2b",
+      "seed": 123,
+      "best_epoch": 4,
+      "logged_epochs": [
+        1,
+        5
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.0713,
+          "val_loss": 1.2014,
+          "val_auc": 0.6114,
+          "val_f1": 0.369
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.7614,
+          "val_loss": 1.1534,
+          "val_auc": 0.6125,
+          "val_f1": 0.368
+        }
+      ]
+    },
+    {
+      "model": "ResNet_pretrained_v2b",
+      "seed": 2024,
+      "best_epoch": 3,
+      "logged_epochs": [
+        1,
+        5
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "train_loss": 1.0857,
+          "val_loss": 1.1964,
+          "val_auc": 0.6291,
+          "val_f1": 0.402
+        },
+        {
+          "epoch": 5,
+          "train_loss": 0.7528,
+          "val_loss": 1.1993,
+          "val_auc": 0.6056,
+          "val_f1": 0.372
+        }
+      ]
+    }
+  ]
+}
