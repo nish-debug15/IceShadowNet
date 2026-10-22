@@ -56,6 +56,18 @@ That 56% of negatives sit just under the >=5 pixel positive threshold is itself 
 False positives near crater rims may reflect dihedral scattering or slope foreshortening; false negatives may be
 weak or diffuse deposits. No radar-geometry analysis supports either. Patches are illustrative only.
 
+#### Failure examples
+Selected by a fixed rule (top-2 confidence FP/FN, CustomCNN seed 2024). Illustrative only; no causal claim.
+
+- **False Positive 1 (Patch 217, Strip 10)**: True Label 0, Score 0.7644 (Tuned Threshold 0.45). Channels: HH, HV, VV log-intensities.
+  ![False Positive 1](figures/failure_fp1.png)
+- **False Positive 2 (Patch 34, Strip 6)**: True Label 0, Score 0.7533 (Tuned Threshold 0.45). Channels: HH, HV, VV log-intensities.
+  ![False Positive 2](figures/failure_fp2.png)
+- **False Negative 1 (Patch 277, Strip 14)**: True Label 1, Score 0.0011 (Tuned Threshold 0.45). Channels: HH, HV, VV log-intensities.
+  ![False Negative 1](figures/failure_fn1.png)
+- **False Negative 2 (Patch 275, Strip 14)**: True Label 1, Score 0.0035 (Tuned Threshold 0.45). Channels: HH, HV, VV log-intensities.
+  ![False Negative 2](figures/failure_fn2.png)
+
 ### 3.7 Limitations
 3 test strips (one with 5 positives); 77 val positives; labels derived from CPR > 1.0, DOP < 0.13, and >=5 anomalous pixels per patch (W=7 boxcar), so circularity applies;
 per-patch standardization discards absolute backscatter level; one scene, DFSAR-only; 3 seeds per config;
