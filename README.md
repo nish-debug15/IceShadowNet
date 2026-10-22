@@ -12,7 +12,7 @@ IceShadowNet investigates whether deep learning models can distinguish **anomalo
 
 > **Scope Decision (Real vs. Synthetic Data):**
 > - **Real-Data Pipeline:** **DFSAR-only**. Real L1A complex slant-range (SLI) quad-polarimetric data (`ch2_sar_ncxl_20260308`) is processed to synthesize circular polarization channels and derive multilooked CPR and DOP labels.
-> - **Multimodal (OHRC) Pipeline:** **Synthetic-only future work**. The downloaded real OHRC optical tile (`ch2_ohr_ncp_20260719`) does not geographically overlap the DFSAR acquisition strip (~35° longitude separation / ~1,800 km apart). Multimodal fusion architectures (EarlyFusionCNN, LateFusionResNet) are validated on synthetic data only and scoped as future work pending overlapping optical coverage.
+> - **Multimodal (OHRC) Pipeline:** **Synthetic-only future work** *(synthetic demo, not part of the real-data benchmark)*. The downloaded real OHRC optical tile (`ch2_ohr_ncp_20260719`) does not geographically overlap the DFSAR acquisition strip (~35° longitude separation / ~1,800 km apart). Multimodal fusion architectures (EarlyFusionCNN, LateFusionResNet) are validated on synthetic data only and scoped as future work pending overlapping optical coverage.
 
 ## 2. Scientific Framing & Limitations
 
@@ -33,7 +33,7 @@ IceShadowNet investigates whether deep learning models can distinguish **anomalo
 | Source | Payload | Processing Level | Status / Use |
 |---|---|---|---|
 | Chandrayaan-2 | DFSAR (L-band quad-pol) | L1A SLI (Complex float32) | **REAL:** Primary input; quad-pol complex scattering matrix ($S_{HH}, S_{HV}, S_{VH}, S_{VV}$) |
-| Chandrayaan-2 | OHRC (Panchromatic optical) | Calibrated L1 | **FUTURE WORK:** Disjoint footprint; preserved for future multimodal alignment |
+| Chandrayaan-2 | OHRC (Panchromatic optical) | Calibrated L1 | **FUTURE WORK:** Disjoint footprint; preserved for future multimodal alignment *(synthetic demo, not part of the real-data benchmark)* |
 
 - **Real DFSAR tile:** `ch2_sar_ncxl_20260308t062017233` (South Polar strip, −81.7° to −86.3° latitude).
 - **Label rule:** $\text{CPR} > 1.0 \land \text{DOP} < 0.13$ with multilook window $W=7$ ($\ge 5$ candidate pixels per $64 \times 64$ patch).
@@ -58,77 +58,97 @@ Spatial Block Split (Grid 1x20, zero spatial leakage)
 Model Training (CustomCNN, ResNet-scratch, ResNet-pretrained) & Baselines (Threshold, Decision Tree)
         ↓
 Evaluation & Grad-CAM Explainability
-        ↓
-Preprocessing (radar normalization, polarimetric feature extraction,
-                image registration, patch generation, augmentation)
-        ↓
-Labeling (CPR/DOP threshold → candidate ice / non-ice patches)
-        ↓
-Model Training
-   ├── Custom CNN
-   └── ResNet (evaluate scratch vs. adapted pretrained weights —
-       ImageNet stats don't transfer cleanly to SAR data)
-        ↓
-Evaluation (Accuracy, Precision, Recall, F1, ROC-AUC,
-            loss curves, training time, parameter count, confusion matrix)
-        ↓
-Explainability (Grad-CAM)
-        ↓
-(Optional) Geospatial ice-probability map
 ```
 
 ## 6. Results
 
-> **⚠️ SYNTHETIC DATA — PLACEHOLDER BENCHMARK**  
-> Demonstrates full end-to-end pipeline execution. Final real-world detection metrics await PRADAN tile download.  
-> **Trained for 30 epochs, 3 seeds, on SYNTHETIC data**
+> **Real-Data Benchmark & Analysis:**  
+> For the completed real Chandrayaan-2 DFSAR benchmark results and scientific interpretation, see:
+> - **[Section 3 Analysis Draft](reports/real/section3_analysis.md)**: Headline finding (no deep model beats Logistic Regression on pooled metrics), CustomCNN vs ResNet_scratch parameter efficiency tie, ImageNet pretraining transfer breakdown, per-strip prevalence dynamics, and baseline sensitivity.
+> - **[Real-Data Benchmark Results (Spatial Block-Bootstrap CIs)](reports/real/results_real_ci_all.md)**: Default and conditional 95% CIs across all 15 deep learning runs (seeds 42, 123, 2024) and classical baselines on full and clean test sets.
+> - **[Along-Track Per-Strip Metrics Breakdown](reports/real/per_strip_metrics.md)**: Granular strip-by-strip (strips 6, 10, 14) breakdown and zero-TP detection analysis.
+> - **[Architecture Comparison](reports/real/results_real_variants_comparison.md)**: Cross-variant summary including ResNet_pretrained v2a/v2b.
+
+> **Historical Synthetic Pipeline Benchmark:**  
+> *(synthetic demo, not part of the real-data benchmark)*  
+> Demonstrates initial pipeline execution across multiple seeds and epochs on synthetic data.
 
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |
 |---|---|---|---|---|---|---|---|---|
 | CustomCNN | 0.7361±0.0196 | 0.4444±0.3143 | 0.1905±0.1347 | 0.2667±0.1886 | 0.6751±0.0555 | TP:2 FP:1 FN:5 TN:16 (Pos:7 Neg:17) | 618,209 | 76.0 |
 | ResNet (Scratch) | 0.8194±0.0393 | 0.7361±0.0856 | 0.6190±0.1347 | 0.6605±0.0915 | 0.8459±0.0914 | TP:3 FP:1 FN:4 TN:16 (Pos:7 Neg:17) | 11,173,889 | 151.1 |
 | ResNet (Pretrained) | 0.7778±0.0196 | 0.6488±0.0748 | 0.5714±0.1166 | 0.5945±0.0521 | 0.8403±0.0562 | TP:4 FP:3 FN:3 TN:14 (Pos:7 Neg:17) | 6,067,201 | 73.9 |
-| EarlyFusionCNN | 0.7222±0.0196 | 0.2222±0.3143 | 0.0952±0.1347 | 0.1333±0.1886 | 0.4594±0.0309 | TP:0 FP:0 FN:7 TN:17 (Pos:7 Neg:17) | 618,497 | 54.0 |
-| LateFusionResNet | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | TP:7 FP:0 FN:0 TN:17 (Pos:7 Neg:17) | 22,606,273 | 200.1 |
-
-*Note: The metrics above demonstrate pipeline correctness across multiple seeds and epochs. Real-world physical performance will be established once PRADAN tiles are ingested.*
+| EarlyFusionCNN *(synthetic demo)* | 0.7222±0.0196 | 0.2222±0.3143 | 0.0952±0.1347 | 0.1333±0.1886 | 0.4594±0.0309 | TP:0 FP:0 FN:7 TN:17 (Pos:7 Neg:17) | 618,497 | 54.0 |
+| LateFusionResNet *(synthetic demo)* | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | TP:7 FP:0 FN:0 TN:17 (Pos:7 Neg:17) | 22,606,273 | 200.1 |
 
 ## 7. Experiments
 
-| Experiment | Input |
-|---|---|
-| CNN | DFSAR only |
-| ResNet | DFSAR only |
-| CNN | DFSAR + OHRC (multimodal) |
-| ResNet | DFSAR + OHRC (multimodal) |
+| Experiment | Input | Status |
+|---|---|---|
+| CNN | DFSAR only | Real-data benchmark complete |
+| ResNet | DFSAR only | Real-data benchmark complete |
+| CNN (Early Fusion) | DFSAR + OHRC (multimodal) | Synthetic demo, not part of the real-data benchmark |
+| ResNet (Late Fusion) | DFSAR + OHRC (multimodal) | Synthetic demo, not part of the real-data benchmark |
 
-## 7. Tech Stack
+## 8. Tech Stack
 
 - **Language:** Python
-- **DL Framework:** PyTorch / TensorFlow 
+- **DL Framework:** PyTorch
 - **Geo/Radar processing:** GDAL, rasterio, NumPy, SciPy
 - **Visualization:** Matplotlib, QGIS (for geospatial output)
 - **Explainability:** Grad-CAM
 
-## 8. Repository Structure
+## 9. Repository Structure
 
 ```
 IceShadowNet/
-├── data/                # raw + processed patches (not committed if large)
-├── notebooks/           # EDA, preprocessing experiments
+├── data/
+│   ├── raw/
+│   │   └── MISSING_DATA.md      # PRADAN download guide for real DFSAR L1A tiles
+│   └── processed_real/          # Spatial NPZ splits (train, val, test)
+├── models_real/                 # PyTorch model weights for 15 real benchmark runs
+├── reports/
+│   ├── real/                    # Benchmark metrics, comparison tables, and analysis
+│   │   ├── section3_analysis.md # Section 3 draft: findings, comparisons, limitations
+│   │   ├── results_real_ci_all.md # 3-block bootstrap CIs (default & conditional)
+│   │   ├── per_strip_metrics.md # Granular along-track per-strip metrics (strips 6, 10, 14)
+│   │   ├── results_real_variants_comparison.md # Side-by-side comparison across all variants
+│   │   ├── trivial_baselines_and_ambiguity_note.md # All-positive baselines & ambiguity note
+│   │   └── training_summary*.json # Stored metrics for programmatic reproduction
+│   └── synthetic_archive/       # Archived placeholder synthetic reports
+├── scripts/
+│   ├── train_all.py             # Main DFSAR multi-seed training pipeline
+│   ├── baseline_real.py         # Decision Tree & Logistic Regression feature baselines
+│   ├── ingest_and_split.py      # Real DFSAR L1A tile ingestion & spatial block splitting
+│   ├── run_gradcam.py           # Grad-CAM heatmap visualization runner
+│   ├── _smoke_gpu.py            # 1-epoch GPU verification smoke test
+│   ├── train_multimodal.py      # Multimodal training (synthetic demo, not part of real benchmark)
+│   ├── ingest_multimodal.py     # Multimodal ingestion (synthetic demo, not part of real benchmark)
+│   ├── verify_real_tile.py      # DFSAR L1A GeoTIFF inspector
+│   └── analysis/                # Standalone analysis & metric reproduction tools
+│       ├── generate_comparison.py
+│       ├── compute_per_strip.py
+│       ├── generate_phase4_reports.py
+│       ├── compute_trivial.py
+│       ├── generate_ci_fixed.py
+│       └── audit_bootstrap.py
 ├── src/
-│   ├── preprocessing/   # radar normalization, CPR/DOP, patch generation
-│   ├── datasets/        # dataset + spatial-split logic
-│   ├── models/          # custom CNN, ResNet
-│   ├── train.py
-│   ├── evaluate.py
-│   └── gradcam.py
-├── reports/             # figures, metrics, final report
+│   ├── datasets/                # IcePatchDataset & spatial block split logic
+│   ├── models/                  # CustomCNN, IceResNet, MultimodalFusion
+│   ├── preprocessing/           # Multilooking, circular polarization, CPR/DOP
+│   ├── train.py                 # Core training loop & optimizer routines
+│   ├── evaluate.py              # Spatial block-bootstrap CI & metric evaluation
+│   └── gradcam.py               # Grad-CAM implementation
+├── tests/
+│   └── test_pipeline.py         # Pytest test suite (splitting, circularity, data ops)
+├── .github/workflows/tests.yml  # GitHub Actions CI workflow
 ├── README.md
-└── PRD.md
+├── PRD.md
+├── requirements.txt
+└── config.yaml
 ```
 
-## 9. Setup
+## 10. Setup
 
 ```bash
 git clone https://github.com/nish-debug15/IceShadowNet
@@ -138,7 +158,7 @@ pip install -r requirements.txt
 
 Data access: register at [PRADAN](https://pradan.issdc.gov.in/ch2/), download DFSAR/OHRC tiles for the target crater, place under `data/raw/`.
 
-## 10. Team
+## 11. Team
 
 | Role | Responsibility |
 |---|---|
@@ -148,11 +168,11 @@ Data access: register at [PRADAN](https://pradan.issdc.gov.in/ch2/), download DF
 | Evaluation & Explainability | Metrics, confusion matrix, Grad-CAM |
 | Integration & Report | Pipeline glue, geospatial mapping, report/demo assembly |
 
-## 11. Acknowledgement
+## 12. Acknowledgement
 
 > This research is based partially on the results obtained from the Chandrayaan-2, second lunar mission of the Indian Space Research Organisation (ISRO), archived at the Indian Space Science Data Centre (ISSDC).
 
-## 12. References
+## 13. References
 
 - ISRO/ISSDC Chandrayaan-2 mission data — https://pradan.issdc.gov.in/ch2/
 - ISRO Lunar Polar Region overview — https://www.isro.gov.in/Lunar_Polar_Region.html
