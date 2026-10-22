@@ -59,6 +59,9 @@ weak or diffuse deposits. No radar-geometry analysis supports either. Patches ar
 #### Failure examples
 Selected by a fixed rule (top-2 confidence FP/FN, CustomCNN seed 2024). Illustrative only; no causal claim.
 
+The two most confident misses are overlapping patches from strip 14 (patches 275 and 277, row coordinates 32 px apart at row offset 32; with 64 px patches this is 50% spatial overlap, representing the same radar feature seen twice). They score 0.001–0.004 against a 0.45 threshold. These are confident misses, not borderline ones, directly explaining why CustomCNN has TP = 0 on strip 14 across all three seeds; this is a genuine failure whose physical cause remains unknown.
+The two highest-confidence false positives are from different strips (strip 10 at 0.7644 and strip 6 at 0.7533, both score ~0.76). Four patches cannot support any claim about crater rims or dihedral scattering, and §3.6 correctly labels that as untested.
+
 - **False Positive 1 (Patch 217, Strip 10)**: True Label 0, Score 0.7644 (Tuned Threshold 0.45). Channels: HH, HV, VV log-intensities.
   ![False Positive 1](figures/failure_fp1.png)
 - **False Positive 2 (Patch 34, Strip 6)**: True Label 0, Score 0.7533 (Tuned Threshold 0.45). Channels: HH, HV, VV log-intensities.
@@ -69,6 +72,6 @@ Selected by a fixed rule (top-2 confidence FP/FN, CustomCNN seed 2024). Illustra
   ![False Negative 2](figures/failure_fn2.png)
 
 ### 3.7 Limitations
-3 test strips (one with 5 positives); 77 val positives; labels derived from CPR > 1.0, DOP < 0.13, and >=5 anomalous pixels per patch (W=7 boxcar), so circularity applies;
+3 test strips (one with 5 positives); 77 val positives; labels derived from CPR > 1.0, DOP < 0.13, and >=5 anomalous pixels per patch, so circularity applies;
 per-patch standardization discards absolute backscatter level; one scene, DFSAR-only; 3 seeds per config;
 thresholds tuned on val swing from 0.05 to 0.92 across seeds, so AUC is the primary metric.
