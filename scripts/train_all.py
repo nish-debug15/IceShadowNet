@@ -62,7 +62,6 @@ BATCH_SIZE = 16
 EPOCHS     = 30
 LR         = 1e-3
 DEVICE     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-assert DEVICE.type == "cuda", f"CUDA not available — refusing to run on CPU. Got device: {DEVICE}"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -436,6 +435,7 @@ def flag_suspicious_metrics(metrics, name, pos_samples=None):
 # Main Runner
 # ──────────────────────────────────────────────────────────────────────────────
 def main(args=None):
+    assert DEVICE.type == "cuda", f"CUDA not available — refusing to run on CPU. Got device: {DEVICE}"
     global PROCESSED_DIR, REPORTS_DIR, MODELS_DIR
 
     if args is None:
