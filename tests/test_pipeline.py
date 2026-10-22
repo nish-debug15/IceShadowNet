@@ -7,7 +7,26 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.datasets.spatial_split import spatial_block_split
-from scripts.train_all import flag_suspicious_metrics
+import torch
+
+from scripts.train_all import flag_suspicious_metrics, FocalLoss, select_loss
+
+
+def test_focal_loss_weights_classes():
+    # Same confidence (logit 0 -> p=0.5) on one positive and one negative.
+    # With alpha=0.9, the positive's loss must be 9x the negative's.
+    loss = FocalLoss(alpha=0.9, gamma=2.0)
+    logit = torch.zeros(1, 1)
+    pos = loss(logit, torch.ones(1, 1))
+    neg = loss(logit, torch.zeros(1, 1))
+    assert torch.isclose(pos / neg, torch.tensor(9.0))
+
+
+def test_select_loss_focal_alpha_from_imbalance():
+    # 14:1 imbalance -> focal loss with alpha = 14/15 on the ice class
+    loss = select_loss(14.0)
+    assert isinstance(loss, FocalLoss)
+    assert abs(loss.alpha - 14.0 / 15.0) < 1e-6
 
 def test_split_leakage():
     # Synthetic coordinates grid

@@ -108,15 +108,21 @@ model is asked to learn. There is inherent label circularity — see §6 Analysi
 ### 3.6 Spatial Block Split
 
 To prevent data leakage from spatially adjacent patches appearing in both
-train and test sets, we split by **geographic block** (4 × 4 grid).
+train and test sets, we split by **geographic block** (8 × 8 grid).
 Entire contiguous blocks are assigned exclusively to train / val / test.
-A hard Python `assert` verifies zero coordinate overlap before training begins.
+Hard Python `assert`s verify zero coordinate overlap and at least one positive
+patch per split before training begins; both checks are unit-tested in CI
+(`tests/test_pipeline.py`).
 
-| Split | Patches |
-|-------|---------|
-| Train | TODO (from class_balance.txt) |
-| Val   | TODO |
-| Test  | TODO |
+| Split | Patches | Ice rate |
+|-------|---------|----------|
+| Train | 155 | 4.5% |
+| Val   | 32  | 12.5% |
+| Test  | 38  | 10.5% |
+
+Note the ice rate differs noticeably between splits. This is a direct consequence
+of block splitting on a scene with one contiguous ice region, and is part of why
+val and test metrics diverge (§6.7).
 
 ---
 
@@ -164,9 +170,18 @@ Two fusion strategies:
 
 ### 4.5 Loss Function
 
-<!-- TODO: fill in actual pos_weight from class_balance.txt -->
-Class imbalance handled by **BCEWithLogitsLoss(pos_weight=<POS_WEIGHT>)** if
-imbalance ratio ≤ 10:1, else **Focal Loss** (α=0.25, γ=2).
+Class imbalance is handled by **BCEWithLogitsLoss(pos_weight=n_noice/n_ice)** if
+the imbalance ratio is ≤ 10:1, else **Focal Loss** (γ=2, with class weight
+α = n_noice / n_total on ice patches and 1 − α on non-ice patches, so both
+classes contribute equally to the total loss).
+
+On the current synthetic data, pos_weight = 210 / 15 = **14.00**, which exceeds
+10:1, so **Focal Loss was used for every model reported in §6.**
+
+> **⚠️ Re-run required:** the §6 numbers were produced by an earlier focal-loss
+> implementation that applied α=0.25 uniformly to every sample. That scales
+> the loss but does not reweight the classes. This was fixed 2026-10-22; re-run
+> `scripts.train_all` and `scripts.train_multimodal`, then `scripts.inject_results`.
 
 Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
@@ -182,7 +197,7 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 | Epochs | 30 |
 | Augmentation | Random H/V flip, 90° rotation |
 | Normalisation | Per-channel zero-mean / unit-std |
-| Seed | 42 (all random sources fixed) |
+| Seeds | 42, 123, 2024 (all random sources fixed per run; metrics reported as mean ± std) |
 | Device | CPU (no GPU available in dev environment) |
 
 ---
@@ -196,7 +211,7 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 <!-- Auto-populated from reports/training_summary.md -->
 
-# Training Summary
+#### Training Summary
 
 > **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene -- no real DFSAR tiles from PRADAN yet). Numbers below demonstrate pipeline correctness only, NOT real ice-detection performance.
 
@@ -206,7 +221,7 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 | ResNet_scratch | 0.7105±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.4820±0.0794 | TP:0 FP:0 FN:11 TN:27 (Pos:11 Neg:27) | 11,173,889 | 54.7 |
 | ResNet_pretrained | 0.7105±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.0000±0.0000 | 0.4355±0.0894 | TP:0 FP:0 FN:11 TN:27 (Pos:11 Neg:27) | 6,067,201 | 45.3 |
 
-## [WARNING] Circularity / Low Support Flags
+##### [WARNING] Circularity / Low Support Flags
 
 
 [WARNING] MAJORITY-CLASS COLLAPSE: ResNet_scratch
@@ -223,7 +238,7 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 <!-- Auto-populated from reports/training_summary_multimodal.md -->
 
-# Multimodal Training Summary
+#### Multimodal Training Summary
 
 > **DATA SOURCE:** SYNTHETIC. See reports/data_notes.md.
 
@@ -232,7 +247,7 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 | EarlyFusionCNN | 0.4697±0.0652 | 0.8918±0.0782 | 0.2667±0.1247 | 0.3888±0.1526 | 0.4294±0.0464 | TP:12 FP:2 FN:18 TN:12 (Pos:30 Neg:14) | 618,497 | 11.2 |
 | LateFusionResNet | 0.4394±0.1714 | 0.2273±0.3214 | 0.3333±0.4714 | 0.2703±0.3822 | 0.5270±0.0522 | TP:30 FP:14 FN:0 TN:0 (Pos:30 Neg:14) | 22,606,273 | 43.9 |
 
-## [WARNING] Circularity / Low Support Flags
+##### [WARNING] Circularity / Low Support Flags
 
 
 [WARNING] LOW SUPPORT -- METRICS ON THIS SPLIT ARE NOISY
@@ -240,24 +255,53 @@ Optimiser: Adam, lr=0.001, ReduceLROnPlateau (patience=5, factor=0.5).
 
 
 ### 6.3 Loss Curves
-**⚠️ SYNTHETIC DATA — PLACEHOLDER**
+**⚠️ SYNTHETIC DATA**
 
-<!-- Embed: reports/CustomCNN_loss_curve.png, reports/ResNet_scratch_loss_curve.png, reports/ResNet_pretrained_loss_curve.png -->
+| CustomCNN | ResNet (scratch) | ResNet (pretrained) |
+|---|---|---|
+| ![](CustomCNN_loss_curve.png) | ![](ResNet_scratch_loss_curve.png) | ![](ResNet_pretrained_loss_curve.png) |
+
+| EarlyFusionCNN | LateFusionResNet |
+|---|---|
+| ![](EarlyFusionCNN_loss_curve.png) | ![](LateFusionResNet_loss_curve.png) |
 
 ### 6.4 Confusion Matrices
-**⚠️ SYNTHETIC DATA — PLACEHOLDER**
+**⚠️ SYNTHETIC DATA**
 
-<!-- Embed: reports/CustomCNN_confusion_matrix.png etc. -->
+| CustomCNN | ResNet (scratch) | ResNet (pretrained) |
+|---|---|---|
+| ![](CustomCNN_confusion_matrix.png) | ![](ResNet_scratch_confusion_matrix.png) | ![](ResNet_pretrained_confusion_matrix.png) |
+
+| EarlyFusionCNN | LateFusionResNet |
+|---|---|
+| ![](EarlyFusionCNN_confusion_matrix.png) | ![](LateFusionResNet_confusion_matrix.png) |
 
 ### 6.5 ROC Curves
-**⚠️ SYNTHETIC DATA — PLACEHOLDER**
+**⚠️ SYNTHETIC DATA**
 
-<!-- Embed: reports/CustomCNN_roc_curve.png etc. -->
+| CustomCNN | ResNet (scratch) | ResNet (pretrained) | EarlyFusionCNN |
+|---|---|---|---|
+| ![](CustomCNN_roc_curve.png) | ![](ResNet_scratch_roc_curve.png) | ![](ResNet_pretrained_roc_curve.png) | ![](EarlyFusionCNN_roc_curve.png) |
+
+<!-- LateFusionResNet_roc_curve.png was not generated in the last run. -->
+
+All ROC-AUC values are ≈ 0.43–0.53, i.e. at or below chance. No model's ranking of
+patches is meaningfully better than random on this synthetic split.
 
 ### 6.6 Grad-CAM Overlays
-**⚠️ SYNTHETIC DATA — PLACEHOLDER**
+**⚠️ SYNTHETIC DATA**
 
-<!-- Embed: reports/gradcam/*.png — discuss whether attention regions are physically plausible -->
+Same test patches (samples 0–3 ice, sample 4 non-ice) for each DFSAR-only model:
+
+| Sample | CustomCNN | ResNet (scratch) | ResNet (pretrained) |
+|---|---|---|---|
+| 0 (ice) | ![](gradcam/CustomCNN_sample0_label1.png) | ![](gradcam/ResNet_scratch_sample0_label1.png) | ![](gradcam/ResNet_pretrained_sample0_label1.png) |
+| 1 (ice) | ![](gradcam/CustomCNN_sample1_label1.png) | ![](gradcam/ResNet_scratch_sample1_label1.png) | ![](gradcam/ResNet_pretrained_sample1_label1.png) |
+| 4 (non-ice) | ![](gradcam/CustomCNN_sample4_label0.png) | ![](gradcam/ResNet_scratch_sample4_label0.png) | ![](gradcam/ResNet_pretrained_sample4_label0.png) |
+
+Caveat for interpretation: both ResNets predict "non-ice" for every patch (§6.1),
+so their heatmaps explain a constant decision and should not be read as evidence
+of learned ice features.
 
 <!-- TODO (team): Write 3–5 sentences interpreting each Grad-CAM result:
      Does the heatmap concentrate on the known ice-candidate region?
@@ -284,7 +328,23 @@ This leads to a measurable generalization gap. For example, in our 30-epoch synt
         vs. pre-learned spatial features.
      3. Does multimodal fusion improve F1/ROC-AUC? If not, discuss registration errors
         or modality redundancy.
-     4. Any near-perfect accuracy? See §6.8 on circularity. -->
+     4. Any near-perfect accuracy? See §6.9 on circularity. -->
+
+**Starting points from the synthetic run (verify against the final numbers):**
+- **Neither ResNet learned the minority class.** Both predict "non-ice" for all 38
+  test patches (accuracy 0.71 = the non-ice share; F1 = 0). The 0.71 accuracy is
+  exactly why the PRD says not to report accuracy alone.
+- **CustomCNN is the only DFSAR-only model with non-zero recall** (F1 0.19 ± 0.13).
+  Plausible explanation: ~0.6M parameters vs. 6–11M for ResNet-18, on only 155
+  training patches with 7 positives. The larger models find the trivial all-negative
+  solution first.
+- **Multimodal results are not comparable to the DFSAR-only table.** The multimodal
+  test split has a different class mix (30 pos / 14 neg vs. 11 / 27), and its
+  validation split had **zero positives** in the run shown. That means checkpoint
+  selection by val-F1 was meaningless for that run. Re-run `scripts.ingest_multimodal`
+  (which now asserts ≥1 positive per split) before drawing conclusions.
+- **LateFusionResNet's 0.33 ± 0.47 recall** is one seed predicting all-ice and
+  others predicting none. That is instability, not learning.
 
 ### 6.9 ⚠️ Label Circularity Risk
 
@@ -331,3 +391,20 @@ of physically confirmed ice detection.
 4. Selvaraju et al. (2017). "Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization." *ICCV.*
 5. Lin et al. (2017). "Focal Loss for Dense Object Detection." *ICCV.*
 6. Nozette et al. (1996). "The Clementine Bistatic Radar Experiment." *Science.*
+
+---
+
+## 9. Individual Contribution
+
+<!-- TODO (team): Use the same names as the §1 table. Replace each "Key files" entry
+     with what that person actually wrote, and each "Contribution" with 1–2 sentences
+     in your own words. Examiners use this table to direct viva questions. -->
+
+| # | Name | Role | Key files | Contribution |
+|---|------|------|-----------|--------------|
+| 1 | TODO | Data & Labeling | `src/preprocessing/data_ops.py`, `src/datasets/spatial_split.py`, `scripts/ingest_and_split.py` | TODO |
+| 2 | TODO | Custom CNN | `src/models/custom_cnn.py`, `scripts/train_all.py` | TODO |
+| 3 | TODO | ResNet | `src/models/resnet.py` | TODO |
+| 4 | TODO | Evaluation & Explainability | `src/evaluate.py`, `src/gradcam.py`, `scripts/run_gradcam.py` | TODO |
+| 5 | TODO | Integration & Report | `scripts/train_multimodal.py`, `scripts/inject_results.py`, this report | TODO |
+

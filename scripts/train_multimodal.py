@@ -28,7 +28,8 @@ from src.models.multimodal_fusion import EarlyFusionCNN, LateFusionResNet
 from scripts.train_all import (
     select_loss, read_pos_weight, save_loss_curve,
     save_confusion_matrix, save_roc_curve, flag_suspicious_metrics,
-    BATCH_SIZE, EPOCHS, LR, SEED, DEVICE, MODELS_DIR, REPORTS_DIR,
+    read_data_source, data_source_banner,
+    BATCH_SIZE, EPOCHS, LR, SEED, SEEDS, DEVICE, MODELS_DIR, REPORTS_DIR,
 )
 
 torch.manual_seed(SEED)
@@ -125,17 +126,16 @@ def train_mm_model(model, train_loader, val_loader, criterion, name):
 
 
 def main():
-    SEEDS = [42, 123, 2024]
-    
+    data_source = read_data_source()
+    print(f"Data source: {data_source}")
+
     train_ds = load_mm_split("train")
     val_ds   = load_mm_split("val")
     test_ds  = load_mm_split("test")
 
     # Support checks
-    val_pos = sum(train_ds.labels) if hasattr(val_ds, 'labels') else sum(val_ds.labels) 
-    # Wait, in Multimodal dataset, labels are precomputed array. `sum(val_ds.labels)`
-    val_pos = sum(val_ds.labels)
-    test_pos = sum(test_ds.labels)
+    val_pos  = int(sum(val_ds.labels))
+    test_pos = int(sum(test_ds.labels))
     print(f"\nVal Positives: {val_pos}, Test Positives: {test_pos}")
     
     low_support_flag = ""
@@ -199,7 +199,7 @@ def main():
         tn, fp, fn, tp = cm.ravel()
         support_str = f"TP:{tp} FP:{fp} FN:{fn} TN:{tn} (Pos:{tp+fn} Neg:{tn+fp})"
         
-        flag = flag_suspicious_metrics(seed_results[-1], name)
+        flag = flag_suspicious_metrics(seed_results[-1], name, pos_samples=test_pos)
         if flag:
             circularity_flags.append(flag)
 
@@ -214,16 +214,20 @@ def main():
             "support":     support_str,
             "params":     params,
             "train_time": round(np.mean([r["train_time"] for r in seed_results]), 1),
+            "epochs_used": EPOCHS,
+            "seeds":       len(SEEDS),
+            "data_source": data_source,
         }
         summary_rows.append(row)
         print(f"\n  Test metrics (Mean±Std) -- {name}:")
         for k, v in row.items():
-            if k not in ("model", "params", "train_time", "val_f1"):
+            if k not in ("model", "params", "train_time", "val_f1", "epochs_used", "seeds", "data_source"):
                 print(f"    {k:12s}: {v}")
 
     md = (
         "# Multimodal Training Summary\n\n"
-        "> **DATA SOURCE:** SYNTHETIC. See reports/data_notes.md.\n\n"
+        + data_source_banner(data_source)
+        + f"> **Run config:** {EPOCHS} epochs, seeds {SEEDS} (mean±std over {len(SEEDS)} runs).\n\n"
         "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |\n"
         "|-------|----------|-----------|--------|----|---------|---------|--------|----------|\n"
     )
@@ -238,10 +242,10 @@ def main():
         for flag in list(set(circularity_flags)):
             md += flag + "\n"
 
-    with open(os.path.join(REPORTS_DIR, "training_summary_multimodal.md"), "w") as f:
+    with open(os.path.join(REPORTS_DIR, "training_summary_multimodal.md"), "w", encoding="utf-8") as f:
         f.write(md)
 
-    with open(os.path.join(REPORTS_DIR, "training_summary_multimodal.json"), "w") as f:
+    with open(os.path.join(REPORTS_DIR, "training_summary_multimodal.json"), "w", encoding="utf-8") as f:
         json.dump(summary_rows, f, indent=2)
 
     print(f"\nMultimodal results saved to {REPORTS_DIR}/")

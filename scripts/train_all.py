@@ -57,6 +57,7 @@ BATCH_SIZE = 16
 EPOCHS     = 30          # bumped to 30 to allow convergence and prevent majority-class collapse on small datasets
 LR         = 1e-3
 SEED       = 42
+SEEDS      = [42, 123, 2024]   # multi-seed runs; test metrics reported as mean±std
 DEVICE     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 torch.manual_seed(SEED)
@@ -71,9 +72,14 @@ class FocalLoss(nn.Module):
     Focal Loss for binary classification.
     Lin et al., "Focal Loss for Dense Object Detection", 2017.
 
-    gamma=2 is the standard recommendation.  When gamma=0 this reduces to BCE.
-    Focal loss down-weights easy negatives (non-ice) so the model focuses
-    on hard-to-classify minority (ice) patches.
+    gamma=2 is the standard recommendation.  When gamma=0 and alpha=0.5 this
+    reduces to (scaled) BCE.  Focal loss down-weights easy negatives (non-ice)
+    so the model focuses on hard-to-classify minority (ice) patches.
+
+    alpha is the weight on the POSITIVE (ice) class; negatives get 1-alpha.
+    It must be applied per class (alpha_t), otherwise it is just a constant
+    scale on the loss and does nothing for imbalance.  select_loss() sets
+    alpha = n_noice / n_total so the two classes contribute equally overall.
 
     Viva note: we prefer this over pure pos_weight when imbalance > 10:1
     because pos_weight still assigns full gradient to each non-ice sample;
@@ -89,15 +95,18 @@ class FocalLoss(nn.Module):
             logits, targets, reduction="none"
         )
         p_t = torch.exp(-bce)
-        focal = self.alpha * (1 - p_t) ** self.gamma * bce
+        alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
+        focal = alpha_t * (1 - p_t) ** self.gamma * bce
         return focal.mean()
 
 
 def select_loss(pos_weight_val: float):
     """Return an appropriate loss function given the positive class weight."""
     if pos_weight_val > 10.0:
-        print(f"  Imbalance ratio {pos_weight_val:.1f} > 10 -> using Focal Loss (gamma=2)")
-        return FocalLoss(alpha=0.25, gamma=2.0)
+        # pos_weight = n_noice / n_ice, so this alpha = n_noice / n_total
+        alpha = pos_weight_val / (1.0 + pos_weight_val)
+        print(f"  Imbalance ratio {pos_weight_val:.1f} > 10 -> using Focal Loss (alpha={alpha:.3f}, gamma=2)")
+        return FocalLoss(alpha=alpha, gamma=2.0)
     else:
         pw = torch.tensor([pos_weight_val], dtype=torch.float32).to(DEVICE)
         print(f"  Imbalance ratio {pos_weight_val:.1f} <= 10 -> using BCEWithLogitsLoss(pos_weight={pos_weight_val:.2f})")
@@ -130,11 +139,33 @@ def read_pos_weight() -> float:
     if not os.path.isfile(path):
         print("  WARNING: class_balance.txt not found, defaulting pos_weight=5.0")
         return 5.0
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             if "pos_weight for BCE" in line:
                 return float(line.split(":")[1].strip().split()[0])
     return 5.0
+
+
+def read_data_source() -> str:
+    """Parse the data source recorded by ingest_and_split.py ("SYNTHETIC ..." or "REAL ...")."""
+    path = os.path.join(REPORTS_DIR, "class_balance.txt")
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("Data source"):
+                    return line.split(":", 1)[1].strip()
+    return "UNKNOWN (class_balance.txt missing -- run scripts.ingest_and_split)"
+
+
+def data_source_banner(data_source: str) -> str:
+    """Markdown banner stating where the numbers in a summary came from."""
+    if data_source.startswith("REAL"):
+        return f"> **DATA SOURCE:** {data_source}\n\n"
+    return (
+        f"> **DATA SOURCE:** {data_source}. "
+        "Numbers below demonstrate pipeline correctness only, "
+        "NOT real ice-detection performance. See reports/data_notes.md.\n\n"
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -285,7 +316,7 @@ def train_model(model, train_loader, val_loader, criterion, name):
 # ──────────────────────────────────────────────────────────────────────────────
 # Circularity / near-perfect-accuracy flag
 # ──────────────────────────────────────────────────────────────────────────────
-def flag_suspicious_metrics(metrics, name):
+def flag_suspicious_metrics(metrics, name, pos_samples=None):
     """
     Emit a visible WARNING if metrics look suspiciously perfect.
     Near-perfect accuracy on a label-threshold-derived dataset is a major
@@ -318,6 +349,14 @@ def flag_suspicious_metrics(metrics, name):
         )
         print(msg)
         return msg
+    elif pos_samples is not None and pos_samples < 10:
+        msg = (
+            f"\n[WARNING] LOW SUPPORT: {name}\n"
+            f"   Only {pos_samples} positive samples in the split.\n"
+            "   Metrics on this split are extremely noisy.\n"
+        )
+        print(msg)
+        return msg
     return ""
 
 
@@ -325,8 +364,9 @@ def flag_suspicious_metrics(metrics, name):
 # Main
 # ──────────────────────────────────────────────────────────────────────────────
 def main():
-    SEEDS = [42, 123, 2024]
-    
+    data_source = read_data_source()
+    print(f"Data source: {data_source}")
+
     print("Loading processed splits from data/processed/ ...")
     train_patches = load_split("train")
     val_patches   = load_split("val")
@@ -408,7 +448,7 @@ def main():
         tn, fp, fn, tp = cm.ravel()
         support_str = f"TP:{tp} FP:{fp} FN:{fn} TN:{tn} (Pos:{tp+fn} Neg:{tn+fp})"
         
-        flag = flag_suspicious_metrics(seed_results[-1], name)
+        flag = flag_suspicious_metrics(seed_results[-1], name, pos_samples=test_pos)
         if flag:
             circularity_flags.append(flag)
 
@@ -423,24 +463,25 @@ def main():
             "support":     support_str,
             "params":      params,
             "train_time":  round(np.mean([r["train_time"] for r in seed_results]), 1),
+            "epochs_used": EPOCHS,
+            "seeds":       len(SEEDS),
+            "data_source": data_source,
         }
         summary_rows.append(row)
 
         print(f"\n  Test metrics (Mean±Std) -- {name}:")
         for k, v in row.items():
-            if k not in ("model", "params", "train_time", "val_f1"):
+            if k not in ("model", "params", "train_time", "val_f1", "epochs_used", "seeds", "data_source"):
                 print(f"    {k:12s}: {v}")
         print(f"    params      : {params:,}")
 
-    with open(os.path.join(REPORTS_DIR, "training_summary.json"), "w") as f:
+    with open(os.path.join(REPORTS_DIR, "training_summary.json"), "w", encoding="utf-8") as f:
         json.dump(summary_rows, f, indent=2)
 
     summary_md = (
         "# Training Summary\n\n"
-        "> **DATA SOURCE:** SYNTHETIC (physically-motivated SAR scene -- "
-        "no real DFSAR tiles from PRADAN yet). "
-        "Numbers below demonstrate pipeline correctness only, "
-        "NOT real ice-detection performance.\n\n"
+        + data_source_banner(data_source)
+        + f"> **Run config:** {EPOCHS} epochs, seeds {SEEDS} (mean±std over {len(SEEDS)} runs).\n\n"
         "| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |\n"
         "|-------|----------|-----------|--------|----|---------|---------|--------|----------|\n"
     )
@@ -455,7 +496,7 @@ def main():
         for flag in list(set(circularity_flags)):
             summary_md += flag + "\n"
 
-    with open(os.path.join(REPORTS_DIR, "training_summary.md"), "w") as f:
+    with open(os.path.join(REPORTS_DIR, "training_summary.md"), "w", encoding="utf-8") as f:
         f.write(summary_md)
 
     print(f"\nAll results saved to {REPORTS_DIR}/")

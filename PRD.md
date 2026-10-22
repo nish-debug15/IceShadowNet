@@ -98,14 +98,23 @@ This is scoped as a course Deep Learning project, not a reproduction of the full
 
 ## 11. Risks
 
-| Risk | Mitigation | Empirical Status (updated 2026-09-18) |
+Status last updated 2026-10-22. All empirical observations below come from the **synthetic** scene (see `reports/data_notes.md`); none are evidence about real DFSAR behaviour.
+
+### 11.1 Risks With a Settled Status
+
+| Risk | Mitigation | Status |
 |---|---|---|
-| Data access delay (admin-gated permissions on PRADAN) | Register and request access on day 1; contact ISSDC admin immediately if gated | **CONFIRMED — NOT RESOLVED.** No tiles downloaded. Pipeline runs on synthetic data (4 craters scattered). `data/raw/` contains `MISSING_DATA.md` documenting the gap. All metrics are synthetic-data only. |
-| Label circularity (CNN just re-learns the threshold rule) | Explicitly frame contribution as spatial/textural generalization beyond pixel-wise thresholding; address directly in report/viva | **REMAINS OPEN PENDING REAL DATA.** Pipeline robustness is proven, but circularity cannot be fully assessed until real spatially-textured SAR data is tested. |
-| Small dataset (single crater) | Spatial-block split, heavy augmentation, report this as a limitation | **CONFIRMED AS LIMITATION.** Synthetic scene is single-scene. Spatial block split (8x8 grid) verified with hard Python asserts against zero-positive splits. |
-| Class imbalance | Weighted loss / focal loss / oversampling; report F1 & ROC-AUC, not accuracy alone | **MITIGATED IN PIPELINE — OPEN PENDING REAL DATA.** The pipeline successfully dynamically balances loss (using BCE pos_weight) and avoids majority-class collapse across 30 epochs on synthetic data. Final validation awaits real PRADAN tile class distribution. |
-| ResNet/ImageNet domain mismatch | Test both scratch-trained and adapted-pretrained ResNet; justify choice in report | **TESTED — RESULTS PENDING REAL DATA.** Both scratch and pretrained variants run flawlessly over multiple seeds. Final domain mismatch impact awaits real data. |
-| Scope creep back toward full ISRO hackathon problem | Keep rover path/ice-volume/landing-site work explicitly optional/future-work only | **CONFIRMED CONTROLLED.** Rover path, ice volume, landing-site scoring remain deferred to PRD §13 (Future Scope). |
+| Data access delay (admin-gated permissions on PRADAN) | Register and request access on day 1; contact ISSDC admin immediately if gated | **OCCURRED — NOT RESOLVED.** No tiles downloaded yet. Pipeline runs end-to-end on a synthetic scene; `data/raw/MISSING_DATA.md` records the gap. `scripts/ingest_and_split.py --real` fails loudly instead of silently falling back to synthetic data. |
+| Small dataset (single crater) | Spatial-block split, heavy augmentation, report this as a limitation | **ACCEPTED AS LIMITATION.** Single synthetic scene, 225 patches. Spatial block split (8×8 grid) enforced by hard asserts (no coordinate in more than one split; ≥1 positive per split), covered by `tests/test_pipeline.py` in CI. |
+| Scope creep back toward full ISRO hackathon problem | Keep rover path/ice-volume/landing-site work explicitly optional/future-work only | **CONTROLLED.** Rover path, ice volume and landing-site scoring remain deferred to §13 (Future Scope). |
+
+### 11.2 Risks Open Pending Real Data
+
+| Risk | Mitigation | Status |
+|---|---|---|
+| Label circularity (CNN just re-learns the threshold rule) | Frame contribution as spatial/textural generalization beyond pixel-wise thresholding; Grad-CAM inspection; automatic warning when accuracy or F1 > 0.97; address directly in report/viva | **OPEN.** The safeguards are in place, but circularity cannot be assessed on a synthetic scene whose texture we generated ourselves. |
+| Class imbalance | Weighted loss / focal loss / oversampling; report F1 & ROC-AUC, not accuracy alone | **PARTIALLY MITIGATED.** Synthetic imbalance is 14:1, so the pipeline selects focal loss (BCE `pos_weight` is used only at ≤ 10:1). CustomCNN learns the minority class weakly (test F1 ≈ 0.19); **both ResNet variants still collapse to the majority class** (F1 = 0). This is detected and flagged automatically. Likely cause found 2026-10-22: the focal loss applied α uniformly instead of per class, so it never upweighted ice. Fixed (α = n_noice/n_total on ice); results pending a re-run. |
+| ResNet/ImageNet domain mismatch | Test both scratch-trained and adapted-pretrained ResNet; justify choice in report | **NOT YET ANSWERABLE.** Both variants train without errors across 3 seeds, but both collapse on synthetic data, so the scratch-vs-pretrained comparison carries no signal yet. |
 
 ## 12. Success Criteria
 
