@@ -57,6 +57,6 @@ False positives near crater rims may reflect dihedral scattering or slope foresh
 weak or diffuse deposits. No radar-geometry analysis supports either. Patches are illustrative only.
 
 ### 3.7 Limitations
-3 test strips (one with 5 positives); 77 val positives; labels derived from CPR>1 and DOP<0.13, so circularity applies;
+3 test strips (one with 5 positives); 77 val positives; labels derived from CPR > 1.0, DOP < 0.13, and >=5 anomalous pixels per patch (W=7 boxcar), so circularity applies;
 per-patch standardization discards absolute backscatter level; one scene, DFSAR-only; 3 seeds per config;
 thresholds tuned on val swing from 0.05 to 0.92 across seeds, so AUC is the primary metric.
