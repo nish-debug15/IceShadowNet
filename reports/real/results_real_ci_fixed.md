@@ -1,3 +1,5 @@
+# SUPERSEDED: CIs conditional on >=1 detection (censors lower tail). Use results_real_ci_all.md.
+
 # REAL-DATA BENCHMARK RESULTS (Fixed F1 Bootstrap CI)
 
 > **DATA SOURCE:** REAL (Chandrayaan-2 DFSAR L1A quad-pol SLI, lines 100,000–140,000).
