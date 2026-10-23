@@ -26,3 +26,6 @@ jobs:
     - name: Run pytest
       run: |
         python -m pytest tests -v
+    - name: Check repo images hygiene
+      run: |
+        python scripts/check_repo_images.py

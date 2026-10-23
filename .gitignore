@@ -24,6 +24,11 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+scratch/
+*.tmp
+/*.png
+/*.jpg
+/*.jpeg
 
 # Jupyter
 .ipynb_checkpoints/
