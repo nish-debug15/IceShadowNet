@@ -60,12 +60,12 @@ export function ComparisonSlider({
       className={`relative select-none overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950 ${className}`}
     >
       {/* Container aspect ratio */}
-      <div className="relative w-full aspect-[2/1] overflow-hidden">
+      <div className="relative w-full aspect-square max-w-[420px] mx-auto overflow-hidden">
         {/* Trained Image (Base layer - right side / revealed as slider moves left) */}
         <img
           src={afterImage}
           alt={afterLabel}
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         />
 
         {/* Untrained Image (Clipped layer - left side) */}
@@ -76,7 +76,7 @@ export function ComparisonSlider({
           <img
             src={beforeImage}
             alt={beforeLabel}
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
         </div>
 

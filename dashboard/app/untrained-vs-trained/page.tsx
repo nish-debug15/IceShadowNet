@@ -114,7 +114,7 @@ export default function UntrainedVsTrainedPage() {
                 <span>Patch #{activeSlot.patch_idx} · Strip {activeSlot.strip_id} · Coords [{activeSlot.coords[0]}, {activeSlot.coords[1]}]</span>
               </div>
               <div>
-                <span>Ground Truth: <strong className="text-neutral-200">{activeSlot.true_label === 1 ? 'Candidate Ice' : 'Regolith'}</strong></span>
+                <span>Ground Truth: <strong className="text-neutral-200">{activeSlot.true_label === 1 ? 'Candidate ice (1)' : 'Not an ice candidate (0)'}</strong></span>
               </div>
             </div>
           </div>

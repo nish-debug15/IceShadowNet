@@ -1,13 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { SpotlightCard } from '../components/SpotlightCard';
+import { Tooltip } from '../components/Tooltip';
 import { getResultsData } from '../lib/data';
 
 export default function OverviewPage() {
   const results = getResultsData();
   const summary = results.summary_by_config;
   const baselines = results.baselines.primary;
-  const trivial = results.trivial_baselines.full_test;
 
   const cnnAuc = summary.CustomCNN.primary.roc_auc.mean.toFixed(3);
   const cnnAucStd = summary.CustomCNN.primary.roc_auc.std.toFixed(3);
@@ -18,125 +18,110 @@ export default function OverviewPage() {
   const lrRow = baselines.find((b: any) => b.model.includes('Logistic Regression'));
   const lrAuc = lrRow ? lrRow.roc_auc.toFixed(3) : '0.731';
 
-  const allPosF1 = trivial.all_positive_f1.toFixed(4);
-
   return (
-    <div className="space-y-16 py-4">
-      {/* 1. Full-Bleed Hero SAR Crop with Candidate-Ice Cyan Overlay */}
-      <section className="relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/60 p-6 md:p-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Text */}
-          <div className="lg:col-span-7 space-y-6 z-10">
-            <div className="inline-flex items-center space-x-2 border border-neutral-700/80 bg-neutral-950/80 px-2.5 py-1 rounded text-[11px] font-mono text-neutral-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-              <span>ISRO CHANDRAYAAN-2 DFSAR L1A BENCHMARK</span>
-            </div>
+    <div className="space-y-8 py-2">
+      {/* 1. Header & Three-Sentence Summary */}
+      <section className="space-y-4">
+        <div className="inline-flex items-center space-x-2 border border-neutral-800 bg-neutral-900/80 px-2.5 py-1 rounded text-[11px] font-mono text-neutral-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+          <span>ISRO CHANDRAYAAN-2 DFSAR L1A BENCHMARK</span>
+        </div>
 
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-light tracking-tight text-neutral-100 font-sans leading-tight">
-                Deep Learning for Lunar Polar Subsurface Ice Detection
-              </h1>
-              <p className="text-sm font-mono text-neutral-400 uppercase tracking-wider">
-                Full-Scene Slant-Range Complex Imagery (Lines 100,000–140,000)
-              </p>
-            </div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-light tracking-tight text-neutral-100 font-sans">
+          Deep Learning for Lunar Polar Subsurface Ice Detection
+        </h1>
 
-            {/* Negative-Result Headline Statement in Plain Type */}
-            <div className="border-l-2 border-neutral-600 pl-4 py-1 space-y-1 text-sm text-neutral-300 leading-relaxed font-sans">
-              <p className="font-medium text-neutral-100">
-                Negative-Result Finding (§3.1): On pooled test metrics, no deep model is clearly superior to classical Logistic Regression.
-              </p>
-              <p className="text-xs text-neutral-400">
-                CustomCNN ROC-AUC 0.756 ± 0.013 vs Logistic Regression 0.731 (gap &lt; 2 seed-std). In along-track strips 6 and 10, deep model F1 remains tethered to the trivial all-positive baseline.
-              </p>
-            </div>
+        {/* 3 Sentences: What, How, Result */}
+        <p className="text-sm sm:text-base text-neutral-300 leading-relaxed max-w-4xl font-sans">
+          We evaluate deep convolutional networks for detecting subsurface lunar water ice deposits using Chandrayaan-2 Dual-Frequency Synthetic Aperture Radar (DFSAR) L1A slant-range imagery.
+          Models observe raw calibrated radar backscatter intensities across an along-track spatial test split free of geographic coordinate leakage.
+          On pooled test metrics, deep learning architectures achieve ROC-AUC ~0.75 and fail to meaningfully outperform classical Logistic Regression (0.731).
+        </p>
 
-            <div className="pt-2 flex flex-wrap gap-3 font-mono text-xs">
-              <Link
-                href="/results/"
-                className="px-4 py-2 bg-neutral-100 hover:bg-white text-neutral-950 font-medium rounded-sm transition"
-              >
-                Inspect Results Grid
-              </Link>
-              <Link
-                href="/patches/"
-                className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-700 rounded-sm transition"
-              >
-                Explore 338 Patches
-              </Link>
-            </div>
-          </div>
-
-          {/* Right Hero Image: Real Grayscale SAR with Candidate Ice Mask in Pure Cyan */}
-          <div className="lg:col-span-5 flex flex-col items-center">
-            <div className="relative w-full max-w-[280px] aspect-[116/512] rounded-lg overflow-hidden border border-neutral-700 shadow-2xl bg-black">
-              {/* Clean high-contrast SAR speckle with candidate-ice pixels in cyan */}
-              <img
-                src="/data/hero_sar_clean.png"
-                alt="Chandrayaan-2 DFSAR L1A Grayscale SAR with Cyan Candidate Ice"
-                className="w-full h-full object-cover filter contrast-125"
-              />
-              <div className="absolute bottom-2 left-2 right-2 bg-neutral-950/90 border border-neutral-800/80 p-2 rounded text-[10px] font-mono text-neutral-300 backdrop-blur-sm">
-                <span className="text-cyan-400 font-bold">CYAN:</span> Candidate Ice (CPR &gt; 1.0 and DOP &lt; 0.13)
-              </div>
-            </div>
-            <p className="text-[10px] font-mono text-neutral-500 mt-2 text-center">
-              512 × 116 px radar tile crop · Chandrayaan-2 DFSAR L1A SLI
-            </p>
-          </div>
+        {/* Result Banner in Plain Language */}
+        <div className="p-4 rounded-md border border-neutral-800 bg-neutral-900/60 flex items-start space-x-3">
+          <span className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 flex-shrink-0"></span>
+          <p className="text-sm text-neutral-200 font-sans">
+            <strong className="text-neutral-100">Result:</strong> The deep models were not clearly better than a simple baseline. The test set has only 3 along-track strips.
+          </p>
         </div>
       </section>
 
-      {/* 2. Row of 4 Large Typographic Numerals */}
+      {/* 2. Wide Rotated SAR Hero Image */}
+      <section className="space-y-2">
+        <div className="w-full rounded-lg overflow-hidden border border-neutral-800 bg-black shadow-2xl">
+          <div className="relative w-full aspect-[2048/464]">
+            <img
+              src="/data/hero_sar_clean.png"
+              alt="Chandrayaan-2 DFSAR L1A Grayscale SAR crop rotated for display with cyan candidate ice"
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] font-mono text-neutral-500 gap-1 px-1">
+          <span>Chandrayaan-2 DFSAR L1A SLI (lines 100,000–140,000, rotated for display)</span>
+          <span className="text-neutral-400">
+            <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 mr-1.5 align-middle"></span>
+            Cyan pixels = Candidate Ice (CPR <Tooltip term="CPR" /> &gt; 1.0 and DOP <Tooltip term="DOP" /> &lt; 0.13)
+          </span>
+        </div>
+      </section>
+
+      {/* 3. Three Large Typographic Numerals */}
       <section className="space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
-          <span className="font-mono text-xs text-neutral-400 uppercase tracking-wider">
-            Headline Benchmark Metrics (Full Spatial Test Set, N=338)
-          </span>
+          <div className="flex items-center space-x-1 font-mono text-xs text-neutral-400 uppercase tracking-wider">
+            <span>Headline Model Metrics</span>
+            <Tooltip term="ROC-AUC" />
+          </div>
           <span className="font-mono text-[10px] text-neutral-500">
             SOURCE: results.json
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <SpotlightCard
             label="CustomCNN ROC-AUC"
             value={cnnAuc}
-            subValue={`± ${cnnAucStd} (Seeds 42, 123, 2024)`}
+            subValue={`± ${cnnAucStd} (0.5 = coin flip, 1.0 = perfect)`}
             provenance="results.json §primary"
             highlight
           />
           <SpotlightCard
             label="ResNet_scratch ROC-AUC"
             value={resnetAuc}
-            subValue={`± ${resnetAucStd} (Seeds 42, 123, 2024)`}
+            subValue={`± ${resnetAucStd} (0.5 = coin flip, 1.0 = perfect)`}
             provenance="results.json §primary"
           />
           <SpotlightCard
             label="Logistic Regression AUC"
             value={lrAuc}
-            subValue="Balanced (hh, hv, vv features)"
+            subValue="0.5 = coin flip (simple 3-feature baseline)"
             provenance="baseline_results.json"
-          />
-          <SpotlightCard
-            label="All-Positive F1 Baseline"
-            value={allPosF1}
-            subValue="Full Test Prevalence: 29.88%"
-            provenance="trivial_baselines"
           />
         </div>
       </section>
 
-      {/* 3. Scientific Framing and Provenance Note */}
-      <section className="p-6 rounded-lg border border-neutral-800 bg-neutral-900/30 space-y-3 font-mono text-xs">
-        <div className="text-neutral-400 uppercase font-semibold">
-          Strict Anti-Circularity & Provenance Guarantee
-        </div>
-        <p className="text-neutral-300 leading-relaxed font-sans text-xs">
-          Physical labels were derived from polarimetric criteria (CPR &gt; 1.0 and DOP &lt; 0.13) using a 7 × 7 multilook boxcar window.
-          To prevent trivial circular reasoning, <strong>CPR and DOP are strictly excluded from all model inputs</strong>.
-          Models observe only raw radar log-intensities (log10|S_HH|², log10|S_HV|², log10|S_VV|²).
-        </p>
+      {/* 4. Quick Action Links */}
+      <section className="pt-2 flex flex-wrap gap-3 font-mono text-xs">
+        <Link
+          href="/pipeline/"
+          className="px-4 py-2.5 bg-neutral-100 hover:bg-white text-neutral-950 font-medium rounded-sm transition"
+        >
+          See How the Pipeline Works →
+        </Link>
+        <Link
+          href="/results/"
+          className="px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 rounded-sm transition"
+        >
+          Inspect Detailed Results Grid
+        </Link>
+        <Link
+          href="/patches/"
+          className="px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 rounded-sm transition"
+        >
+          Explore All 338 Patches
+        </Link>
       </section>
     </div>
   );

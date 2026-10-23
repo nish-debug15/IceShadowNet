@@ -23,7 +23,7 @@ export function PatchHoverCard({ patch, selectedModel }: PatchHoverCardProps) {
               : 'bg-neutral-800 text-neutral-400'
           }`}
         >
-          {isPos ? 'CANDIDATE ICE' : 'REGOLITH'}
+          {isPos ? 'CANDIDATE ICE (1)' : 'NOT CANDIDATE (0)'}
         </span>
       </div>
 

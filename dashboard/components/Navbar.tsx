@@ -7,12 +7,10 @@ import { Menu, X } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Overview' },
-  { href: '/pipeline/', label: 'Pipeline' },
-  { href: '/training/', label: 'Training' },
+  { href: '/pipeline/', label: 'How it works' },
   { href: '/results/', label: 'Results' },
-  { href: '/patches/', label: 'Patch Explorer' },
-  { href: '/untrained-vs-trained/', label: 'Untrained vs Trained' },
-  { href: '/failure-cases/', label: 'Failure Cases' },
+  { href: '/patches/', label: 'Explore' },
+  { href: '/failure-cases/', label: 'What went wrong' },
 ];
 
 export function Navbar() {
@@ -58,7 +56,7 @@ export function Navbar() {
           {/* Provenance Tag */}
           <div className="hidden lg:flex items-center">
             <span className="font-mono text-[10px] text-neutral-400 border border-neutral-800 px-2 py-1 rounded bg-neutral-900/50">
-              LUNAR SOUTH POLE · 81.7°S–86.3°S
+              CH-2 DFSAR L1A · LINES 100,000–140,000
             </span>
           </div>
 
