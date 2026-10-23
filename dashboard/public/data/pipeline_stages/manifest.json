@@ -1,8 +1,14 @@
 {
   "status": "ALL_STAGES_EXPORTED_FROM_RAW_DFSAR",
+  "orientation": "rotated 90 degrees counter-clockwise (azimuth along horizontal axis)",
+  "caption": "rotated for display",
   "crop_dimensions": {
-    "height": 512,
-    "width": 116,
+    "original_height": 512,
+    "original_width": 116,
+    "rotated_width": 512,
+    "rotated_height": 116,
+    "display_width": 2048,
+    "display_height": 464,
     "lines_start": 100000
   },
   "stages": [
@@ -10,49 +16,81 @@
       "stage": 1,
       "name": "Raw HH Log-Intensity",
       "image": "data/pipeline_stages/stage1_raw_hh.png",
-      "size_kb": 54.1064453125
+      "image_webp": "data/pipeline_stages/stage1_raw_hh.webp",
+      "size_kb": 360.7197265625,
+      "scale_min": 4.579569501876831,
+      "scale_max": 7.392890892028809,
+      "units": "log10 intensity"
     },
     {
       "stage": 2,
       "name": "Raw HV Symmetrized",
       "image": "data/pipeline_stages/stage2_raw_hv.png",
-      "size_kb": 52.3916015625
+      "image_webp": "data/pipeline_stages/stage2_raw_hv.webp",
+      "size_kb": 350.529296875,
+      "scale_min": 3.7292233896255493,
+      "scale_max": 6.625190191268921,
+      "units": "log10 intensity"
     },
     {
       "stage": 3,
       "name": "Raw VV Log-Intensity",
       "image": "data/pipeline_stages/stage3_raw_vv.png",
-      "size_kb": 54.3134765625
+      "image_webp": "data/pipeline_stages/stage3_raw_vv.webp",
+      "size_kb": 359.46484375,
+      "scale_min": 4.501325693130493,
+      "scale_max": 7.327953424453735,
+      "units": "log10 intensity"
     },
     {
       "stage": 4,
-      "name": "Multilooked Radar RGB (W=7)",
+      "name": "Multilooked Radar (W=7)",
       "image": "data/pipeline_stages/stage4_multilooked.png",
-      "size_kb": 38.3330078125
+      "image_webp": "data/pipeline_stages/stage4_multilooked.webp",
+      "size_kb": 171.82421875,
+      "scale_min": 2.834777317047119,
+      "scale_max": 6.9451251983642575,
+      "units": "log10 intensity"
     },
     {
       "stage": 5,
       "name": "Circular Polarization Ratio (CPR)",
       "image": "data/pipeline_stages/stage5_cpr.png",
-      "size_kb": 39.8798828125
+      "image_webp": "data/pipeline_stages/stage5_cpr.webp",
+      "size_kb": 316.0810546875,
+      "scale_min": 0.07678942650556564,
+      "scale_max": 1.075117630958557,
+      "units": "ratio (dimensionless)"
     },
     {
       "stage": 6,
       "name": "Degree of Polarization (DOP)",
       "image": "data/pipeline_stages/stage6_dop.png",
-      "size_kb": 43.4189453125
+      "image_webp": "data/pipeline_stages/stage6_dop.webp",
+      "size_kb": 364.8095703125,
+      "scale_min": 0.21588461607694626,
+      "scale_max": 0.8916414618492127,
+      "units": "polarization degree [0, 1]"
     },
     {
       "stage": 7,
       "name": "Binary Candidate Ice Mask",
       "image": "data/pipeline_stages/stage7_label_mask.png",
-      "size_kb": 19.720703125
+      "image_webp": "data/pipeline_stages/stage7_label_mask.webp",
+      "size_kb": 3.4697265625,
+      "scale_min": 0,
+      "scale_max": 1,
+      "units": "binary (cyan=candidate ice)"
     },
     {
       "stage": 8,
       "name": "Patch Extraction Grid",
       "image": "data/pipeline_stages/stage8_patch_grid.png",
-      "size_kb": 42.9091796875
+      "image_webp": "data/pipeline_stages/stage8_patch_grid.webp",
+      "size_kb": 334.5751953125,
+      "scale_min": 0,
+      "scale_max": 1,
+      "units": "grid (cyan=positive patch)"
     }
   ]
 }

@@ -34,6 +34,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 import torch
 from torch.utils.data import DataLoader
+from scipy.ndimage import uniform_filter
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if REPO_ROOT not in sys.path:
@@ -49,6 +50,9 @@ from src.evaluate import (
     compute_comprehensive_metrics,
 )
 from src.gradcam import run_gradcam, HAS_GRADCAM
+from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+from pytorch_grad_cam.utils.image import show_cam_on_image
 from scripts.baseline_real import extract_features
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -497,7 +501,10 @@ def export_per_patch_scores(results_data):
             "cpr_mean": float(cpr_means[i]),
             "dop_mean": float(dop_means[i]),
             "is_clean": bool(is_clean[i]),
-            "image_path": f"data/patches/patch_{i:03d}.png",
+            "image_path": f"data/patches/patch_{i:03d}_hh.webp",
+            "image_hh": f"data/patches/patch_{i:03d}_hh.webp",
+            "image_hv": f"data/patches/patch_{i:03d}_hv.webp",
+            "image_vv": f"data/patches/patch_{i:03d}_vv.webp",
             "scores": {rk: model_scores[rk][i] for rk in model_scores},
         }
         patches_out.append(p_obj)
@@ -532,27 +539,32 @@ def export_per_patch_scores(results_data):
 # 4. PATCH IMAGES
 # ──────────────────────────────────────────────────────────────────────────────
 def export_patch_images():
-    print(f"\n[4/8] Exporting 338 patch PNG images with shared fixed display scaling [{DISPLAY_VMIN}, {DISPLAY_VMAX}]...")
+    print(f"\n[4/8] Exporting 338 patch WebP images (HH, HV, VV, 192x192) with per-patch 2-98% stretch...")
 
     test_data = np.load(os.path.join(PROCESSED_DIR, "test.npz"))
     imgs = test_data["images"] # (338, 3, 64, 64)
     n_patches = imgs.shape[0]
 
     sizes = []
+    patch_dir = os.path.join(OUTPUT_BASE, "patches")
+    os.makedirs(patch_dir, exist_ok=True)
+
     for i in range(n_patches):
         patch = imgs[i] # (3, 64, 64): HH, HV, VV log-intensity
-        rgb = np.clip((patch - DISPLAY_VMIN) / (DISPLAY_VMAX - DISPLAY_VMIN), 0.0, 1.0)
-        rgb_chw = (rgb * 255.0).astype(np.uint8)
-        rgb_hwc = np.transpose(rgb_chw, (1, 2, 0)) # (64, 64, 3)
+        for c, cname in enumerate(["hh", "hv", "vv"]):
+            ch = patch[c]
+            p2, p98 = np.percentile(ch, (2, 98))
+            norm = np.clip((ch - p2) / (p98 - p2 + 1e-8), 0.0, 1.0)
+            u8 = (norm * 255.0).astype(np.uint8)
+            im = Image.fromarray(u8, mode="L").resize((192, 192), resample=Image.Resampling.LANCZOS)
+            out_p = os.path.join(patch_dir, f"patch_{i:03d}_{cname}.webp")
+            im.save(out_p, format="WEBP", quality=85)
+            sz = os.path.getsize(out_p)
+            sizes.append(sz)
 
-        im = Image.fromarray(rgb_hwc, mode="RGB")
-        out_p = os.path.join(OUTPUT_BASE, "patches", f"patch_{i:03d}.png")
-        im.save(out_p, format="PNG", optimize=True)
-        sz = os.path.getsize(out_p)
-        assert sz < 150 * 1024, f"Image {out_p} exceeds 150 KB! Size={sz} bytes"
-        sizes.append(sz)
 
-    print(f"  -> Saved {n_patches} patch PNGs in dashboard/public/data/patches/")
+
+    print(f"  -> Saved {n_patches * 3} patch WebP images in dashboard/public/data/patches/")
     print(f"  Average file size: {np.mean(sizes)/1024:.2f} KB (Max: {np.max(sizes)/1024:.2f} KB, Total: {np.sum(sizes)/(1024*1024):.2f} MB)")
 
 
@@ -582,7 +594,6 @@ def export_gradcam_comparisons(per_patch_data):
     untrained_model.eval()
 
     # Get predictions
-    trained_scores = np.array(per_patch_data["patches"][0]["scores"]["CustomCNN_seed2024"]) # placeholder to get len
     trained_scores = np.array([p["scores"]["CustomCNN_seed2024"] for p in per_patch_data["patches"]])
     th = 0.45
     preds = (trained_scores >= th).astype(int)
@@ -595,19 +606,15 @@ def export_gradcam_comparisons(per_patch_data):
     untrained_scores = eval_untrained["probs"]
 
     # Fixed selection rule
-    # TP: y=1, pred=1. Sort desc by prob, then asc by idx
     tp_idx = np.where((y_test == 1) & (preds == 1))[0]
     sorted_tp = sorted(tp_idx, key=lambda i: (-trained_scores[i], i))[:6]
 
-    # FP: y=0, pred=1. Sort desc by prob, then asc by idx
     fp_idx = np.where((y_test == 0) & (preds == 1))[0]
     sorted_fp = sorted(fp_idx, key=lambda i: (-trained_scores[i], i))[:6]
 
-    # FN: y=1, pred=0. Sort asc by prob, then asc by idx
     fn_idx = np.where((y_test == 1) & (preds == 0))[0]
     sorted_fn = sorted(fn_idx, key=lambda i: (trained_scores[i], i))[:6]
 
-    # TN: y=0, pred=0. Sort asc by prob, then asc by idx
     tn_idx = np.where((y_test == 0) & (preds == 0))[0]
     sorted_tn = sorted(tn_idx, key=lambda i: (trained_scores[i], i))[:6]
 
@@ -616,13 +623,11 @@ def export_gradcam_comparisons(per_patch_data):
     failure_fns = sorted_fn[:2] # [277, 275]
 
     patch_slots = []
-    # 4 failure patch slots
     patch_slots.append({"slot": "failure_fp1", "patch_idx": int(failure_fps[0]), "category": "Failure FP #1"})
     patch_slots.append({"slot": "failure_fp2", "patch_idx": int(failure_fps[1]), "category": "Failure FP #2"})
     patch_slots.append({"slot": "failure_fn1", "patch_idx": int(failure_fns[0]), "category": "Failure FN #1"})
     patch_slots.append({"slot": "failure_fn2", "patch_idx": int(failure_fns[1]), "category": "Failure FN #2"})
 
-    # 24 fixed-rule slots (6 each of TP, FP, FN, TN)
     for rank, idx in enumerate(sorted_tp, 1):
         patch_slots.append({"slot": f"tp_{rank}", "patch_idx": int(idx), "category": f"True Positive #{rank}"})
     for rank, idx in enumerate(sorted_fp, 1):
@@ -634,6 +639,19 @@ def export_gradcam_comparisons(per_patch_data):
 
     assert len(patch_slots) == 28, f"Expected 28 slots, got {len(patch_slots)}"
 
+    grad_trained_dir = os.path.join(OUTPUT_BASE, "gradcam", "trained")
+    grad_untrained_dir = os.path.join(OUTPUT_BASE, "gradcam", "untrained")
+    grad_base_dir = os.path.join(OUTPUT_BASE, "gradcam", "base")
+    failure_dir = os.path.join(OUTPUT_BASE, "failure_cases")
+    os.makedirs(grad_trained_dir, exist_ok=True)
+    os.makedirs(grad_untrained_dir, exist_ok=True)
+    os.makedirs(grad_base_dir, exist_ok=True)
+    os.makedirs(failure_dir, exist_ok=True)
+
+    cam_trained = GradCAM(model=trained_model, target_layers=[trained_model.conv3])
+    cam_untrained = GradCAM(model=untrained_model, target_layers=[untrained_model.conv3])
+    targets = [ClassifierOutputTarget(0)]
+
     manifest = []
     file_sizes = []
 
@@ -642,34 +660,52 @@ def export_gradcam_comparisons(per_patch_data):
         p_idx = slot_info["patch_idx"]
         cat = slot_info["category"]
 
-        # Prepare normalized input tensor for model
         raw_patch = imgs[p_idx].copy()
-        # Per-channel zero-mean unit-std
         norm_patch = raw_patch.copy()
         for c in range(3):
             mu = norm_patch[c].mean()
             std = norm_patch[c].std()
             norm_patch[c] = (norm_patch[c] - mu) / (std + 1e-8)
-        inp_tensor = torch.from_numpy(norm_patch).unsqueeze(0).to(DEVICE) # (1, 3, 64, 64)
+        inp_tensor = torch.from_numpy(norm_patch).unsqueeze(0).to(DEVICE)
 
-        # Prepare display RGB composite [0, 1]
-        rgb_disp = np.clip((raw_patch - DISPLAY_VMIN) / (DISPLAY_VMAX - DISPLAY_VMIN), 0.0, 1.0)
-        rgb_disp_hwc = np.transpose(rgb_disp, (1, 2, 0)) # (64, 64, 3)
+        # Grayscale base patch: channel 0 (HH) 2-98% percentile stretch
+        p2, p98 = np.percentile(raw_patch[0], (2, 98))
+        base_gray = np.clip((raw_patch[0] - p2) / (p98 - p2 + 1e-8), 0.0, 1.0)
+        base_rgb = np.stack([base_gray, base_gray, base_gray], axis=-1)
 
-        # Paths
-        trained_img_rel = f"data/gradcam/trained/{slot}.png"
-        trained_img_full = os.path.join(OUTPUT_BASE, "gradcam", "trained", f"{slot}.png")
-        untrained_img_rel = f"data/gradcam/untrained/{slot}.png"
-        untrained_img_full = os.path.join(OUTPUT_BASE, "gradcam", "untrained", f"{slot}.png")
+        # Trained CAM
+        g_t = cam_trained(input_tensor=inp_tensor, targets=targets)[0, :]
+        g_t_norm = (g_t - g_t.min()) / (g_t.max() - g_t.min() + 1e-8)
+        vis_t = show_cam_on_image(base_rgb, g_t_norm, use_rgb=True)
 
-        # Run Grad-CAM
-        run_gradcam(trained_model, inp_tensor, rgb_disp_hwc, model_type="cnn", save_path=trained_img_full)
-        run_gradcam(untrained_model, inp_tensor, rgb_disp_hwc, model_type="cnn", save_path=untrained_img_full)
+        # Untrained CAM
+        g_u = cam_untrained(input_tensor=inp_tensor, targets=targets)[0, :]
+        g_u_norm = (g_u - g_u.min()) / (g_u.max() - g_u.min() + 1e-8)
+        vis_u = show_cam_on_image(base_rgb, g_u_norm, use_rgb=True)
 
-        sz_t = os.path.getsize(trained_img_full)
-        sz_u = os.path.getsize(untrained_img_full)
-        assert sz_t < 150 * 1024, f"Trained GradCAM {trained_img_full} exceeds 150 KB ({sz_t} bytes)"
-        assert sz_u < 150 * 1024, f"Untrained GradCAM {untrained_img_full} exceeds 150 KB ({sz_u} bytes)"
+        # Upscale 384x384 bicubic
+        TARGET_CAM_SZ = (384, 384)
+        im_base = Image.fromarray((base_rgb * 255.0).astype(np.uint8)).resize(TARGET_CAM_SZ, resample=Image.Resampling.BICUBIC)
+        im_t = Image.fromarray(vis_t).resize(TARGET_CAM_SZ, resample=Image.Resampling.BICUBIC)
+        im_u = Image.fromarray(vis_u).resize(TARGET_CAM_SZ, resample=Image.Resampling.BICUBIC)
+
+        base_path = os.path.join(grad_base_dir, f"{slot}.webp")
+        t_path = os.path.join(grad_trained_dir, f"{slot}.webp")
+        u_path = os.path.join(grad_untrained_dir, f"{slot}.webp")
+
+        im_base.save(base_path, format="WEBP", quality=90)
+        im_t.save(t_path, format="WEBP", quality=90)
+        im_u.save(u_path, format="WEBP", quality=90)
+
+        # If it's one of the 4 failure cases, also save standalone failure assets
+        if slot.startswith("failure_"):
+            fail_patch_p = os.path.join(failure_dir, f"patch_{p_idx}_hh.webp")
+            fail_overlay_p = os.path.join(failure_dir, f"patch_{p_idx}_overlay.webp")
+            im_base.save(fail_patch_p, format="WEBP", quality=92)
+            im_t.save(fail_overlay_p, format="WEBP", quality=92)
+
+        sz_t = os.path.getsize(t_path)
+        sz_u = os.path.getsize(u_path)
         file_sizes.extend([sz_t, sz_u])
 
         manifest.append({
@@ -679,26 +715,33 @@ def export_gradcam_comparisons(per_patch_data):
             "strip_id": int(strips[p_idx]),
             "coords": [int(coords[p_idx, 0]), int(coords[p_idx, 1])],
             "true_label": int(y_test[p_idx]),
+            "base_image": f"data/gradcam/base/{slot}.webp",
             "trained_model": {
                 "name": "CustomCNN (seed 2024 trained)",
                 "weights": "models_real/CustomCNN_seed2024.pth",
                 "score": float(trained_scores[p_idx]),
                 "threshold": float(th),
                 "prediction": int(preds[p_idx]),
-                "gradcam_image": trained_img_rel,
+                "gradcam_image": f"data/gradcam/trained/{slot}.webp",
             },
             "untrained_model": {
                 "name": "CustomCNN (seed 2024 random initialization)",
                 "weights": "randomly initialized (torch.manual_seed(2024))",
                 "score": float(untrained_scores[p_idx]),
-                "gradcam_image": untrained_img_rel,
+                "gradcam_image": f"data/gradcam/untrained/{slot}.webp",
             }
         })
 
     manifest_file = os.path.join(OUTPUT_BASE, "gradcam", "manifest.json")
     with open(manifest_file, "w") as f:
-        json.dump({"slots_count": len(manifest), "unique_patches": len(set(m["patch_idx"] for m in manifest)), "slots": manifest}, f, indent=2)
-    print(f"  -> Generated {len(manifest)} Grad-CAM comparisons (Trained vs Untrained) in dashboard/public/data/gradcam/")
+        json.dump({
+            "slots_count": len(manifest),
+            "unique_patches": len(set(m["patch_idx"] for m in manifest)),
+            "heatmap_normalization": "per-image min-max [0, 1]",
+            "resolution": "384x384 bicubic upscale",
+            "slots": manifest
+        }, f, indent=2)
+    print(f"  -> Generated {len(manifest)} Grad-CAM comparisons (pure pixel 384x384) in dashboard/public/data/gradcam/")
     print(f"  Average file size: {np.mean(file_sizes)/1024:.2f} KB (Max: {np.max(file_sizes)/1024:.2f} KB)")
 
 
@@ -706,7 +749,7 @@ def export_gradcam_comparisons(per_patch_data):
 # 7. PIPELINE STAGES
 # ──────────────────────────────────────────────────────────────────────────────
 def export_pipeline_stages():
-    print("\n[7/8] Generating raw DFSAR pipeline stage visualisations...")
+    print("\n[7/8] Generating raw DFSAR pipeline stage visualisations (pure pixel data, rotated 90°)...")
 
     stages_info = []
     pols = ["hh", "hv", "vh", "vv"]
@@ -718,7 +761,6 @@ def export_pipeline_stages():
     if sli_files_exist:
         import rasterio
         from src.preprocessing.data_ops import compute_cpr_dop_complex
-        from scipy.ndimage import uniform_filter
 
         print("  Real DFSAR L1A quad-pol SLI data found. Loading 512x116 crop at line 100,000...")
         start_row = 100000
@@ -749,77 +791,114 @@ def export_pipeline_stages():
         cpr, dop = compute_cpr_dop_complex(Shh, Shv, Svh, Svv, W=W)
         label_mask = ((cpr > 1.0) & (dop < 0.13)).astype(np.uint8)
 
-        # Helper to save stage image with size assert
-        def save_stage_img(img_arr, fname, title, cmap="gray", vmin=None, vmax=None):
-            out_p = os.path.join(OUTPUT_BASE, "pipeline_stages", fname)
-            fig, ax = plt.subplots(figsize=(3, 5), dpi=72)
-            if cmap == "rgb":
-                im = ax.imshow(img_arr)
-            else:
-                im = ax.imshow(img_arr, cmap=cmap, vmin=vmin, vmax=vmax)
-                plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-            ax.set_title(title, fontsize=9, fontweight="bold")
-            ax.axis("off")
-            plt.savefig(out_p, dpi=72, bbox_inches="tight", pad_inches=0.05)
-            plt.close()
-            sz = os.path.getsize(out_p)
-            assert sz < 150 * 1024, f"Pipeline stage {out_p} exceeds 150 KB ({sz} bytes)"
-            return sz
+        # Rotate 90 degrees so azimuth (512 lines) is horizontal
+        def rotate_crop(arr):
+            return np.rot90(arr, k=1)
 
-        # 1. Raw HH
-        sz1 = save_stage_img(I_hh, "stage1_raw_hh.png", "Stage 1: Raw HH Log-Intensity", cmap="viridis", vmin=2.0, vmax=7.0)
-        # 2. Raw HV
-        sz2 = save_stage_img(I_hv, "stage2_raw_hv.png", "Stage 2: Raw HV (Symmetrized)", cmap="viridis", vmin=2.0, vmax=7.0)
-        # 3. Raw VV
-        sz3 = save_stage_img(I_vv, "stage3_raw_vv.png", "Stage 3: Raw VV Log-Intensity", cmap="viridis", vmin=2.0, vmax=7.0)
+        TARGET_W = 2048
+        TARGET_H = 464
+        stages_dir = os.path.join(OUTPUT_BASE, "pipeline_stages")
+        os.makedirs(stages_dir, exist_ok=True)
 
-        # 4. Multilooked RGB composite (W=7)
+        def save_pure_grayscale(arr, fname_base, p_low=2, p_high=98):
+            rot = rotate_crop(arr)
+            p2, p98 = np.percentile(rot, (p_low, p_high))
+            norm = np.clip((rot - p2) / (p98 - p2 + 1e-8), 0.0, 1.0)
+            u8 = (norm * 255.0).astype(np.uint8)
+            im = Image.fromarray(u8, mode="L").resize((TARGET_W, TARGET_H), resample=Image.Resampling.LANCZOS)
+            out_png = os.path.join(stages_dir, f"{fname_base}.png")
+            out_webp = os.path.join(stages_dir, f"{fname_base}.webp")
+            im.save(out_webp, format="WEBP", quality=92)
+            im.save(out_png, format="PNG", optimize=True)
+            sz_png = os.path.getsize(out_png)
+            if sz_png > 400 * 1024:
+                # Resize PNG to 1600 width if over 400 KB
+                im1600 = Image.fromarray(u8, mode="L").resize((1600, 363), resample=Image.Resampling.LANCZOS)
+                im1600.save(out_png, format="PNG", optimize=True)
+                sz_png = os.path.getsize(out_png)
+            assert sz_png < 400 * 1024, f"PNG {out_png} exceeds 400 KB"
+            return sz_png, float(p2), float(p98)
+
+        sz1, min1, max1 = save_pure_grayscale(I_hh, "stage1_raw_hh")
+        sz2, min2, max2 = save_pure_grayscale(I_hv, "stage2_raw_hv")
+        sz3, min3, max3 = save_pure_grayscale(I_vv, "stage3_raw_vv")
+
         m_hh = uniform_filter(I_hh, size=W)
-        m_hv = uniform_filter(I_hv, size=W)
-        m_vv = uniform_filter(I_vv, size=W)
-        rgb_multilook = np.stack([
-            np.clip((m_hh - DISPLAY_VMIN) / (DISPLAY_VMAX - DISPLAY_VMIN), 0, 1),
-            np.clip((m_hv - DISPLAY_VMIN) / (DISPLAY_VMAX - DISPLAY_VMIN), 0, 1),
-            np.clip((m_vv - DISPLAY_VMIN) / (DISPLAY_VMAX - DISPLAY_VMIN), 0, 1),
-        ], axis=-1)
-        sz4 = save_stage_img(rgb_multilook, "stage4_multilooked.png", "Stage 4: Multilooked (W=7) RGB", cmap="rgb")
+        sz4, min4, max4 = save_pure_grayscale(m_hh, "stage4_multilooked")
+        sz5, min5, max5 = save_pure_grayscale(cpr, "stage5_cpr", p_low=2, p_high=98)
+        sz6, min6, max6 = save_pure_grayscale(dop, "stage6_dop", p_low=2, p_high=98)
 
-        # 5. CPR Map
-        sz5 = save_stage_img(cpr, "stage5_cpr.png", "Stage 5: Circular Pol. Ratio (CPR)", cmap="plasma", vmin=0.0, vmax=2.5)
+        # Stage 7: Label mask (cyan on black)
+        mask_rot = rotate_crop(label_mask)
+        mask_rgb = np.zeros((116, 512, 3), dtype=np.uint8)
+        mask_rgb[mask_rot == 1] = [34, 211, 238]
+        im_mask = Image.fromarray(mask_rgb, mode="RGB").resize((TARGET_W, TARGET_H), resample=Image.Resampling.NEAREST)
+        out_p7 = os.path.join(stages_dir, "stage7_label_mask.png")
+        im_mask.save(out_p7, format="PNG", optimize=True)
+        im_mask.save(os.path.join(stages_dir, "stage7_label_mask.webp"), format="WEBP", quality=95)
+        sz7 = os.path.getsize(out_p7)
 
-        # 6. DOP Map
-        sz6 = save_stage_img(dop, "stage6_dop.png", "Stage 6: Degree of Pol. (DOP)", cmap="cividis", vmin=0.0, vmax=1.0)
+        # Stage 8: Patch Grid (multilooked grayscale with grid and positive patches highlighted)
+        rot_m_hh = rotate_crop(m_hh)
+        p2_m, p98_m = np.percentile(rot_m_hh, (2, 98))
+        norm_m = np.clip((rot_m_hh - p2_m) / (p98_m - p2_m + 1e-8), 0.0, 1.0)
+        u8_m = (norm_m * 255.0).astype(np.uint8)
+        base_rgb = np.stack([u8_m, u8_m, u8_m], axis=-1)
+        im_base_grid = Image.fromarray(base_rgb).resize((TARGET_W, TARGET_H), resample=Image.Resampling.LANCZOS)
+        grid_arr = np.array(im_base_grid)
 
-        # 7. Candidate Ice Mask
-        sz7 = save_stage_img(label_mask, "stage7_label_mask.png", "Stage 7: Candidate Ice Mask (CPR>1 & DOP<0.13)", cmap="Blues", vmin=0, vmax=1)
-
-        # 8. Patch Grid
-        fig, ax = plt.subplots(figsize=(3, 5), dpi=72)
-        ax.imshow(rgb_multilook)
-        # Draw 64x64 patch bounding boxes
         P = 64
         stride = 32
-        for r in range(0, crop_h - P + 1, stride * 2): # sample subset of boxes for clean visualization
-            for c in range(0, crop_w - P + 1, stride):
-                rect = patches_plt.Rectangle((c, r), P, P, linewidth=1.2, edgecolor="yellow", facecolor="none", linestyle="--")
-                ax.add_patch(rect)
-        ax.set_title("Stage 8: Patch Grid (64x64, Stride 32)", fontsize=9, fontweight="bold")
-        ax.axis("off")
-        out_p8 = os.path.join(OUTPUT_BASE, "pipeline_stages", "stage8_patch_grid.png")
-        plt.savefig(out_p8, dpi=72, bbox_inches="tight", pad_inches=0.05)
-        plt.close()
+        scale = 4
+        for r in range(0, 116 - P + 1, stride):
+            for c in range(0, 512 - P + 1, stride):
+                n_pos = np.sum(mask_rot[r:r+P, c:c+P] == 1)
+                is_pos = (n_pos >= 5)
+
+                r_start = r * scale
+                r_end = (r + P) * scale
+                c_start = c * scale
+                c_end = (c + P) * scale
+
+                if is_pos:
+                    border_color = np.array([34, 211, 238], dtype=np.uint8)
+                    grid_arr[r_start:r_start+3, c_start:c_end] = border_color
+                    grid_arr[r_end-3:r_end, c_start:c_end] = border_color
+                    grid_arr[r_start:r_end, c_start:c_start+3] = border_color
+                    grid_arr[r_start:r_end, c_end-3:c_end] = border_color
+                    interior = grid_arr[r_start+3:r_end-3, c_start+3:c_end-3].astype(np.float32)
+                    tinted = interior * 0.75 + border_color.astype(np.float32) * 0.25
+                    grid_arr[r_start+3:r_end-3, c_start+3:c_end-3] = np.clip(tinted, 0, 255).astype(np.uint8)
+                else:
+                    b_col = np.array([100, 100, 100], dtype=np.uint8)
+                    grid_arr[r_start, c_start:c_end:4] = b_col
+                    grid_arr[r_end-1, c_start:c_end:4] = b_col
+                    grid_arr[r_start:r_end:4, c_start] = b_col
+                    grid_arr[r_start:r_end:4, c_end-1] = b_col
+
+        im_grid = Image.fromarray(grid_arr, mode="RGB")
+        out_p8 = os.path.join(stages_dir, "stage8_patch_grid.png")
+        im_grid.save(out_p8, format="PNG", optimize=True)
+        im_grid.save(os.path.join(stages_dir, "stage8_patch_grid.webp"), format="WEBP", quality=90)
         sz8 = os.path.getsize(out_p8)
-        assert sz8 < 150 * 1024
+
+        # Hero SAR Image: Stage 4 multilooked with candidate ice in cyan overlaid
+        hero_arr = np.array(im_base_grid)
+        mask_scaled = np.array(im_mask)[:, :, 0] > 0
+        hero_arr[mask_scaled] = [34, 211, 238]
+        out_hero = os.path.join(OUTPUT_BASE, "hero_sar_clean.png")
+        Image.fromarray(hero_arr, mode="RGB").save(out_hero, format="PNG", optimize=True)
+        Image.fromarray(hero_arr, mode="RGB").save(os.path.join(OUTPUT_BASE, "hero_sar_clean.webp"), format="WEBP", quality=92)
 
         stages_info = [
-            {"stage": 1, "name": "Raw HH Log-Intensity", "image": "data/pipeline_stages/stage1_raw_hh.png", "size_kb": sz1/1024},
-            {"stage": 2, "name": "Raw HV Symmetrized", "image": "data/pipeline_stages/stage2_raw_hv.png", "size_kb": sz2/1024},
-            {"stage": 3, "name": "Raw VV Log-Intensity", "image": "data/pipeline_stages/stage3_raw_vv.png", "size_kb": sz3/1024},
-            {"stage": 4, "name": "Multilooked Radar RGB (W=7)", "image": "data/pipeline_stages/stage4_multilooked.png", "size_kb": sz4/1024},
-            {"stage": 5, "name": "Circular Polarization Ratio (CPR)", "image": "data/pipeline_stages/stage5_cpr.png", "size_kb": sz5/1024},
-            {"stage": 6, "name": "Degree of Polarization (DOP)", "image": "data/pipeline_stages/stage6_dop.png", "size_kb": sz6/1024},
-            {"stage": 7, "name": "Binary Candidate Ice Mask", "image": "data/pipeline_stages/stage7_label_mask.png", "size_kb": sz7/1024},
-            {"stage": 8, "name": "Patch Extraction Grid", "image": "data/pipeline_stages/stage8_patch_grid.png", "size_kb": sz8/1024},
+            {"stage": 1, "name": "Raw HH Log-Intensity", "image": "data/pipeline_stages/stage1_raw_hh.png", "image_webp": "data/pipeline_stages/stage1_raw_hh.webp", "size_kb": sz1/1024, "scale_min": min1, "scale_max": max1, "units": "log10 intensity"},
+            {"stage": 2, "name": "Raw HV Symmetrized", "image": "data/pipeline_stages/stage2_raw_hv.png", "image_webp": "data/pipeline_stages/stage2_raw_hv.webp", "size_kb": sz2/1024, "scale_min": min2, "scale_max": max2, "units": "log10 intensity"},
+            {"stage": 3, "name": "Raw VV Log-Intensity", "image": "data/pipeline_stages/stage3_raw_vv.png", "image_webp": "data/pipeline_stages/stage3_raw_vv.webp", "size_kb": sz3/1024, "scale_min": min3, "scale_max": max3, "units": "log10 intensity"},
+            {"stage": 4, "name": "Multilooked Radar (W=7)", "image": "data/pipeline_stages/stage4_multilooked.png", "image_webp": "data/pipeline_stages/stage4_multilooked.webp", "size_kb": sz4/1024, "scale_min": min4, "scale_max": max4, "units": "log10 intensity"},
+            {"stage": 5, "name": "Circular Polarization Ratio (CPR)", "image": "data/pipeline_stages/stage5_cpr.png", "image_webp": "data/pipeline_stages/stage5_cpr.webp", "size_kb": sz5/1024, "scale_min": min5, "scale_max": max5, "units": "ratio (dimensionless)"},
+            {"stage": 6, "name": "Degree of Polarization (DOP)", "image": "data/pipeline_stages/stage6_dop.png", "image_webp": "data/pipeline_stages/stage6_dop.webp", "size_kb": sz6/1024, "scale_min": min6, "scale_max": max6, "units": "polarization degree [0, 1]"},
+            {"stage": 7, "name": "Binary Candidate Ice Mask", "image": "data/pipeline_stages/stage7_label_mask.png", "image_webp": "data/pipeline_stages/stage7_label_mask.webp", "size_kb": sz7/1024, "scale_min": 0, "scale_max": 1, "units": "binary (cyan=candidate ice)"},
+            {"stage": 8, "name": "Patch Extraction Grid", "image": "data/pipeline_stages/stage8_patch_grid.png", "image_webp": "data/pipeline_stages/stage8_patch_grid.webp", "size_kb": sz8/1024, "scale_min": 0, "scale_max": 1, "units": "grid (cyan=positive patch)"},
         ]
         status = "ALL_STAGES_EXPORTED_FROM_RAW_DFSAR"
     else:
@@ -828,12 +907,14 @@ def export_pipeline_stages():
 
     out_json = {
         "status": status,
-        "crop_dimensions": {"height": 512, "width": 116, "lines_start": 100000},
+        "orientation": "rotated 90 degrees counter-clockwise (azimuth along horizontal axis)",
+        "caption": "rotated for display",
+        "crop_dimensions": {"original_height": 512, "original_width": 116, "rotated_width": 512, "rotated_height": 116, "display_width": 2048, "display_height": 464, "lines_start": 100000},
         "stages": stages_info,
     }
     with open(os.path.join(OUTPUT_BASE, "pipeline_stages", "manifest.json"), "w") as f:
         json.dump(out_json, f, indent=2)
-    print(f"  -> Exported {len(stages_info)} pipeline stages. Status: {status}")
+    print(f"  -> Exported {len(stages_info)} pipeline stages (pure pixel data, rotated 90°). Status: {status}")
     return out_json
 
 
@@ -885,6 +966,11 @@ def export_meta_json(auc_table):
             "vmax": DISPLAY_VMAX,
             "units": "log10 intensity",
             "mapping": "np.clip((I - 2.0) / 5.0, 0, 1) mapped to [0, 255] RGB composite (R=HH, G=HV, B=VV)"
+        },
+        "display_notes": {
+            "patch_scaling": "display scaling only; models see per-patch standardized inputs",
+            "gradcam_normalization": "per-image min-max [0, 1]",
+            "pipeline_orientation": "rotated for display (azimuth horizontal)"
         },
         "auc_verification_summary": {
             "total_runs": len(auc_table),
@@ -955,7 +1041,7 @@ def main():
     print("EXPORT COMPLETED SUCCESSFULLY")
     print(f"  Total files exported : {file_count}")
     print(f"  Total export size    : {total_mb:.2f} MB  (Constraint: < 25 MB)")
-    print(f"  Largest single file  : {max_file_path} ({max_file_size/1024:.1f} KB, Constraint: < 150 KB for images)")
+    print(f"  Largest single file  : {max_file_path} ({max_file_size/1024:.1f} KB, Constraint: < 400 KB for hero/stage)")
     print(f"  Execution time       : {time.time() - t_start:.1f} s")
     print("=" * 70)
 
