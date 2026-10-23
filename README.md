@@ -68,6 +68,7 @@ Evaluation & Grad-CAM Explainability
 > - **[Real-Data Benchmark Results (Spatial Block-Bootstrap CIs)](reports/real/results_real_ci_all.md)**: Default and conditional 95% CIs across all 15 deep learning runs (seeds 42, 123, 2024) and classical baselines on full and clean test sets.
 > - **[Along-Track Per-Strip Metrics Breakdown](reports/real/per_strip_metrics.md)**: Granular strip-by-strip (strips 6, 10, 14) breakdown and zero-TP detection analysis.
 > - **[Architecture Comparison](reports/real/results_real_variants_comparison.md)**: Cross-variant summary including ResNet_pretrained v2a/v2b.
+> - **[Interactive Web Dashboard](dashboard/)**: Interactive visual exploration of benchmark metrics, pipeline stages, and patch classifications. Live dashboard: (add URL after deploy)
 
 > **Historical Synthetic Pipeline Benchmark:**  
 > *(synthetic demo, not part of the real-data benchmark)*  
