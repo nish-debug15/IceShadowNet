@@ -44,7 +44,7 @@ const STAGE_DESCRIPTIONS = [
   {
     stage: 6,
     title: 'Degree of Polarization (DOP) Map',
-    summary: 'Quantifies the fraction of scattered radar energy that remains polarized. Low DOP indicates multiple volume scattering characteristic of ice deposits.',
+    summary: 'Quantifies the fraction of scattered radar energy that remains polarized. Low DOP (<0.13) indicates depolarization from multiple volume scattering.',
     math: 'DOP = \\frac{\\sqrt{S_1^2 + S_2^2 + S_3^2}}{S_0}',
     mathPlain: 'DOP = √(S1² + S2² + S3²) / S0',
   },
@@ -203,7 +203,7 @@ export default function HowItWorksPage() {
             Before Training vs. After Training
           </h2>
           <p className="text-sm text-neutral-300 max-w-3xl font-sans">
-            A sanity-check ablation showing what the network learns. Before training, randomly initialized filters produce diffuse, noisy activations. After training, the network focuses on specific high-backscatter structures.
+            A sanity-check ablation comparing activations on identical patches under random initialization vs trained weights. Grad-CAM maps are illustrative, not evidence of physical meaning.
           </p>
         </div>
 
@@ -254,7 +254,7 @@ export default function HowItWorksPage() {
 
         {/* Physical Disclaimer */}
         <div className="p-4 rounded-md border border-neutral-800 bg-neutral-900/40 text-xs text-neutral-400 font-sans leading-relaxed max-w-3xl mx-auto text-center">
-          <strong className="text-neutral-300">Interpretability Disclaimer:</strong> Grad-CAM highlights regional spatial correlation with radar speckle variance rather than resolving subsurface dielectric ice volume scattering.
+          <strong className="text-neutral-300">Interpretability Disclaimer:</strong> Grad-CAM maps are illustrative, not evidence of physical meaning.
         </div>
       </section>
     </div>

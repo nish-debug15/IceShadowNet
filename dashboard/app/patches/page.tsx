@@ -401,7 +401,7 @@ export default function PatchesPage() {
               </div>
               <p className="text-[10px] font-mono text-neutral-500 text-center">
                 {showGradCam
-                  ? 'Grad-CAM Overlay (CustomCNN seed 2024, layer conv3)'
+                  ? 'Grad-CAM Overlay (CustomCNN seed 2024, layer conv3) — illustrative, not evidence of physical meaning'
                   : `Polarization: ${selectedChannel.toUpperCase()} log-intensity · 64×64 radar resolution (Lanczos upscaled)`}
               </p>
             </div>

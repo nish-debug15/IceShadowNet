@@ -251,7 +251,7 @@ export default function ResultsPage() {
             <div>
               <strong className="text-neutral-100">No deep model is clearly better than Logistic Regression:</strong>{' '}
               The AUC gap between CustomCNN (0.756) and Logistic Regression (0.731) is under two seed standard deviations.
-              Because the test set has only 3 along-track strips, spatial block-bootstrap confidence intervals overlap completely.
+              Because the test set has only 3 along-track strips, spatial block-bootstrap confidence intervals overlap completely (3 strips, 10 distinct resamples).
               We report this as a negative result, not a ranking.
             </div>
           </li>

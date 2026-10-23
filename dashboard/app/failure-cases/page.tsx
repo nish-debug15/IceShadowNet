@@ -93,12 +93,12 @@ export default function FailureCasesPage() {
 
       {/* 4 Failure Patches Side-by-Side (Pure 384x384 WebP, zero letterbox) */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-800 pb-2 gap-1">
           <h2 className="font-mono text-xs text-neutral-300 uppercase tracking-wider font-semibold">
             Highest-Confidence Failures (Top-2 FP, Top-2 FN)
           </h2>
           <span className="text-[11px] font-mono text-neutral-500">
-            Selected from CustomCNN seed 2024 (tuned threshold 0.45)
+            Selected from CustomCNN seed 2024 (tuned threshold 0.45) · Grad-CAM overlays: illustrative, not evidence of physical meaning
           </span>
         </div>
 
@@ -159,7 +159,7 @@ export default function FailureCasesPage() {
 
               <div className="pt-1 text-[11px] font-mono text-neutral-500 flex justify-between">
                 <span>Resolution: 384×384 pure WebP</span>
-                <span>Layer: conv3 activation</span>
+                <span>Layer: conv3 activation (illustrative, not evidence of physical meaning)</span>
               </div>
             </div>
           ))}

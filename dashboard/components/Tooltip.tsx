@@ -8,7 +8,7 @@ export const GLOSSARY: Record<string, string> = {
   'Threshold': 'Decision boundary probability: scores at or above this value predict candidate ice.',
   'Strip': 'Along-track radar orbital acquisition swath (independent spatial test block).',
   'CPR': 'Circular Polarization Ratio (high values indicate volume scattering from ice or rough surfaces).',
-  'DOP': 'Degree of Polarization (low values indicate depolarized backscatter from subsurface ice).',
+  'DOP': 'Degree of Polarization (low values indicate depolarized backscatter from multiple volume scattering; threshold <0.13).',
 };
 
 interface TooltipProps {
