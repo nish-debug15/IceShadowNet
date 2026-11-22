@@ -44,3 +44,12 @@ reports/real/*.png
 *.egg-info/
 dist/
 build/
+
+# Report build files and artifacts
+report_build/
+IceShadowNet_Report.docx
+IceShadowNet_Report.pdf
+*.docx
+~$*.docx
+*.pdf
+MAD_Report_SEE.docx

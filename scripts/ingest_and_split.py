@@ -30,6 +30,8 @@ from src.preprocessing.data_ops import (
     label_from_threshold, generate_patches,
 )
 from src.datasets.spatial_split import spatial_block_split, assert_no_extent_leakage
+from src.datasets.scene_registry import scan_raw_directory, generate_split_plan, format_scene_table_markdown
+
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -207,10 +209,38 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
     assert lbl_val.sum() > 0, "FATAL: Val split contains zero positive (ice) samples!"
     assert lbl_test.sum() > 0, "FATAL: Test split contains zero positive (ice) samples!"
 
-    # 6. Check minimum 10 positives per split
+    # 6. Check positive counts & GATE requirement (Test positives >= 30)
     train_pos = int(lbl_train.sum())
     val_pos   = int(lbl_val.sum())
     test_pos  = int(lbl_test.sum())
+
+    if test_pos < 30:
+        print("\n" + "!"*70)
+        print(f"GATE WARNING: Test positives ({test_pos}) < 30! Propose fix before continuing.")
+        print("!"*70 + "\n")
+        sys.exit(2)
+    else:
+        print(f"\nGATE CHECK PASSED: Test positives = {test_pos} (>= 30 required).")
+
+    # Save scene registry audit report
+    registered_scenes = scan_raw_directory(RAW_DIR)
+    split_plan = generate_split_plan(registered_scenes)
+    scene_table_md = format_scene_table_markdown(registered_scenes)
+    reg_report_path = os.path.join(out_reports_dir, "scene_registry.md")
+    with open(reg_report_path, "w", encoding="utf-8") as f:
+        f.write("# Scene Registry & Split Plan Audit\n\n")
+        f.write(f"**Plan Type**: {split_plan['plan_type']}\n\n")
+        f.write(f"**Note**: {split_plan['note']}\n\n")
+        f.write("## Registered SAR Scenes\n\n")
+        f.write(scene_table_md + "\n\n")
+        f.write("## Split Verification Summary\n\n")
+        f.write(f"- **Train patches**: {len(train_patches)} (Pos: {train_pos})\n")
+        f.write(f"- **Val patches**: {len(val_patches)} (Pos: {val_pos})\n")
+        f.write(f"- **Test patches**: {len(test_patches)} (Pos: {test_pos})\n")
+        f.write(f"- **Buffer pixels**: {buffer_px} px\n")
+        f.write(f"- **Gate condition (Test pos >= 30)**: PASSED ({test_pos} >= 30)\n")
+    print(f"Saved scene registry audit to {reg_report_path}")
+
 
     # 7. Write class_balance_real.txt
     # pos_weight: strictly computed from TRAIN split only after boundary buffer drop

@@ -45,3 +45,18 @@ real_dfsar:
   patch_label_fraction: 0.0012 # Equivalent to >= 5 pixels in 64x64 patch (~0.12%)
   input_channels: ["hh", "hv", "vv"] # Raw radar log-intensities only (no derived CPR/DOP)
 
+# Multi-scene registry & cross-validation configuration
+scene_registry:
+  raw_dir: "data/raw"
+  min_test_positives: 30
+  guard_buffer_pixels: 64
+  multilook_window: 7
+  cpr_threshold: 1.0
+  dop_threshold: 0.13
+  scenes:
+    - id: "ch2_sar_ncxl_20260308t062017233"
+      instrument: "DFSAR L1A Quad-Pol SLI"
+      path: "data/raw/sar_nxcl"
+      active_rows: [100000, 140000]
+
+
