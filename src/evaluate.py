@@ -14,8 +14,9 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
     roc_auc_score, average_precision_score, confusion_matrix,
-    ConfusionMatrixDisplay,
+    ConfusionMatrixDisplay, matthews_corrcoef, balanced_accuracy_score,
 )
+
 
 
 def tune_threshold_on_val(
@@ -52,6 +53,103 @@ def tune_threshold_on_val(
     return best_thresh, best_f1
 
 
+def compute_ece_and_reliability(
+    y_true: np.ndarray,
+    y_probs: np.ndarray,
+    n_bins: int = 10,
+) -> dict:
+    """
+    Compute Expected Calibration Error (ECE) and bin reliability statistics.
+    ECE = sum_{m=1}^M (|B_m| / N) * |acc(B_m) - conf(B_m)|
+    """
+    y_true = np.asarray(y_true).flatten().astype(int)
+    y_probs = np.asarray(y_probs).flatten().astype(float)
+    bin_boundaries = np.linspace(0.0, 1.0, n_bins + 1)
+    
+    bin_lowers = bin_boundaries[:-1]
+    bin_uppers = bin_boundaries[1:]
+    
+    ece = 0.0
+    mce = 0.0
+    bin_accs = []
+    bin_confs = []
+    bin_counts = []
+    
+    total_n = max(len(y_true), 1)
+    for i, (bin_lower, bin_upper) in enumerate(zip(bin_lowers, bin_uppers)):
+        if i == 0:
+            in_bin = (y_probs >= bin_lower) & (y_probs <= bin_upper)
+        else:
+            in_bin = (y_probs > bin_lower) & (y_probs <= bin_upper)
+            
+        count = int(np.sum(in_bin))
+        bin_counts.append(count)
+        
+        if count > 0:
+            acc_val = float(np.mean(y_true[in_bin]))
+            conf_val = float(np.mean(y_probs[in_bin]))
+            gap = abs(acc_val - conf_val)
+            ece += (count / total_n) * gap
+            mce = max(mce, gap)
+            bin_accs.append(acc_val)
+            bin_confs.append(conf_val)
+        else:
+            bin_accs.append(0.0)
+            bin_confs.append((bin_lower + bin_upper) / 2.0)
+            
+    return {
+        "ece": float(ece),
+        "mce": float(mce),
+        "bin_accs": bin_accs,
+        "bin_confs": bin_confs,
+        "bin_counts": bin_counts,
+        "bin_centers": [float((b0 + b1) / 2.0) for b0, b1 in zip(bin_lowers, bin_uppers)],
+    }
+
+
+def plot_reliability_diagram(
+    y_true: np.ndarray,
+    y_probs: np.ndarray,
+    title: str = "Reliability Diagram",
+    save_path: str = None,
+    n_bins: int = 10,
+):
+    """
+    Plot reliability diagram comparing confidence to empirical accuracy.
+    """
+    calib = compute_ece_and_reliability(y_true, y_probs, n_bins=n_bins)
+    centers = calib["bin_centers"]
+    accs = calib["bin_accs"]
+    counts = calib["bin_counts"]
+    ece = calib["ece"]
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 7), sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+    
+    # Perfect calibration line
+    ax1.plot([0, 1], [0, 1], linestyle="--", color="gray", label="Perfect Calibration")
+    # Reliability bars
+    ax1.bar(centers, accs, width=1.0/n_bins, alpha=0.6, color="#1f77b4", edgecolor="black", label=f"Model (ECE: {ece:.3f})")
+    ax1.set_ylabel("Empirical Accuracy", fontsize=11)
+    ax1.set_ylim([0.0, 1.05])
+    ax1.set_title(title, fontsize=12, fontweight="bold")
+    ax1.legend(loc="upper left")
+    ax1.grid(True, linestyle=":", alpha=0.6)
+    
+    # Confidence histogram
+    ax2.bar(centers, counts, width=1.0/n_bins, alpha=0.7, color="#ff7f0e", edgecolor="black")
+    ax2.set_xlabel("Confidence Bin", fontsize=11)
+    ax2.set_ylabel("Count", fontsize=11)
+    ax2.set_xlim([0.0, 1.0])
+    ax2.grid(True, linestyle=":", alpha=0.6)
+    
+    plt.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=120)
+        plt.close()
+    return fig
+
+
 def compute_comprehensive_metrics(
     y_true: np.ndarray,
     y_probs: np.ndarray,
@@ -77,6 +175,8 @@ def compute_comprehensive_metrics(
     prec = precision_score(y_true, y_pred, zero_division=0)
     rec  = recall_score(y_true, y_pred, zero_division=0)
     f1   = f1_score(y_true, y_pred, zero_division=0)
+    mcc  = matthews_corrcoef(y_true, y_pred)
+    bal_acc = balanced_accuracy_score(y_true, y_pred)
 
     try:
         roc_auc = roc_auc_score(y_true, y_probs)
@@ -87,6 +187,8 @@ def compute_comprehensive_metrics(
         pr_auc = average_precision_score(y_true, y_probs)
     except Exception:
         pr_auc = float(np.mean(y_true))
+
+    calib = compute_ece_and_reliability(y_true, y_probs)
 
     prevalence = float(np.mean(y_true))
 
@@ -99,13 +201,18 @@ def compute_comprehensive_metrics(
         "precision": float(prec),
         "recall": float(rec),
         "f1": float(f1),
+        "mcc": float(mcc),
+        "balanced_accuracy": float(bal_acc),
         "roc_auc": float(roc_auc),
         "pr_auc": float(pr_auc),
+        "ece": float(calib["ece"]),
+        "mce": float(calib["mce"]),
         "prevalence": float(prevalence),
         "threshold": float(threshold),
         "confusion_matrix": cm,
         "support": support_str,
     }
+
 
 
 def block_bootstrap_evaluation(
@@ -150,6 +257,8 @@ def block_bootstrap_evaluation(
     f1_list = []
     roc_auc_list = []
     pr_auc_list = []
+    mcc_list = []
+    bal_acc_list = []
     f1_conditional_list = []
 
     for _ in range(n_bootstraps):
@@ -165,6 +274,8 @@ def block_bootstrap_evaluation(
 
         pred_boot = (p_boot >= threshold).astype(int)
         f1_val = f1_score(y_boot, pred_boot, zero_division=0)
+        mcc_val = matthews_corrcoef(y_boot, pred_boot)
+        bal_acc_val = balanced_accuracy_score(y_boot, pred_boot)
 
         # Track conditional F1 (conditional on >=1 detection, sensitivity only)
         if f1_val > 0.0 and np.sum(pred_boot == 1) > 0:
@@ -177,6 +288,8 @@ def block_bootstrap_evaluation(
         f1_list.append(f1_val)
         roc_auc_list.append(roc_auc_score(y_boot, p_boot))
         pr_auc_list.append(average_precision_score(y_boot, p_boot))
+        mcc_list.append(mcc_val)
+        bal_acc_list.append(bal_acc_val)
 
     alpha = (1.0 - confidence_level) / 2.0
     low_pct = 100.0 * alpha
@@ -186,18 +299,26 @@ def block_bootstrap_evaluation(
         f1_ci = (float(np.percentile(f1_list, low_pct)), float(np.percentile(f1_list, high_pct)))
         roc_auc_ci = (float(np.percentile(roc_auc_list, low_pct)), float(np.percentile(roc_auc_list, high_pct)))
         pr_auc_ci = (float(np.percentile(pr_auc_list, low_pct)), float(np.percentile(pr_auc_list, high_pct)))
+        mcc_ci = (float(np.percentile(mcc_list, low_pct)), float(np.percentile(mcc_list, high_pct)))
+        bal_acc_ci = (float(np.percentile(bal_acc_list, low_pct)), float(np.percentile(bal_acc_list, high_pct)))
         f1_mean = float(np.mean(f1_list))
         roc_auc_mean = float(np.mean(roc_auc_list))
         pr_auc_mean = float(np.mean(pr_auc_list))
+        mcc_mean = float(np.mean(mcc_list))
+        bal_acc_mean = float(np.mean(bal_acc_list))
     else:
         # Fallback in extreme edge case
         point = compute_comprehensive_metrics(y_true, y_probs, threshold=threshold)
         f1_ci = (point["f1"], point["f1"])
         roc_auc_ci = (point["roc_auc"], point["roc_auc"])
         pr_auc_ci = (point["pr_auc"], point["pr_auc"])
+        mcc_ci = (point["mcc"], point["mcc"])
+        bal_acc_ci = (point["balanced_accuracy"], point["balanced_accuracy"])
         f1_mean = point["f1"]
         roc_auc_mean = point["roc_auc"]
         pr_auc_mean = point["pr_auc"]
+        mcc_mean = point["mcc"]
+        bal_acc_mean = point["balanced_accuracy"]
 
     n_blocks = len(unique_strips)
     n_distinct = comb(2 * n_blocks - 1, n_blocks) if n_blocks > 0 else 0
@@ -206,14 +327,19 @@ def block_bootstrap_evaluation(
         "f1_ci": f1_ci,
         "roc_auc_ci": roc_auc_ci,
         "pr_auc_ci": pr_auc_ci,
+        "mcc_ci": mcc_ci,
+        "bal_acc_ci": bal_acc_ci,
         "f1_mean": f1_mean,
         "roc_auc_mean": roc_auc_mean,
         "pr_auc_mean": pr_auc_mean,
+        "mcc_mean": mcc_mean,
+        "bal_acc_mean": bal_acc_mean,
         "valid_rounds": len(f1_list),
         "total_rounds": n_bootstraps,
         "n_blocks": n_blocks,
         "n_distinct_resamples": n_distinct,
     }
+
 
     if len(f1_conditional_list) > 0:
         res["f1_conditional_ci"] = (
@@ -249,12 +375,14 @@ def evaluate_model(model, dataloader, device, threshold: float = 0.5):
     all_labels = []
 
     with torch.no_grad():
-        for inputs, labels in dataloader:
-            inputs = inputs.to(device)
-            outputs = model(inputs)
-            probs = torch.sigmoid(outputs).cpu().numpy().flatten()
-            all_probs.extend(probs)
-            all_labels.extend(labels.numpy().flatten())
+        with torch.amp.autocast('cuda', enabled=(device.type == "cuda")):
+            for inputs, labels in dataloader:
+
+                inputs = inputs.to(device)
+                outputs = model(inputs)
+                probs = torch.sigmoid(outputs).cpu().numpy().flatten()
+                all_probs.extend(probs)
+                all_labels.extend(labels.numpy().flatten())
 
     all_labels = np.array(all_labels).astype(int)
     all_probs = np.array(all_probs).astype(float)
@@ -263,6 +391,7 @@ def evaluate_model(model, dataloader, device, threshold: float = 0.5):
     metrics["probs"] = all_probs
     metrics["labels"] = all_labels
     return metrics
+
 
 
 def save_confusion_matrix(cm, save_path):

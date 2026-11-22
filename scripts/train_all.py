@@ -48,7 +48,9 @@ from src.evaluate import (
     block_bootstrap_evaluation,
     get_strip_ids_from_coords,
     evaluate_model,
+    plot_reliability_diagram,
 )
+
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 PROCESSED_DIR = "data/processed"
@@ -165,11 +167,13 @@ def evaluate(model, loader):
     model.eval()
     all_logits, all_labels = [], []
     with torch.no_grad():
-        for x, y in loader:
-            x = x.to(DEVICE)
-            logits = model(x).cpu()
-            all_logits.append(logits)
-            all_labels.append(y)
+        with torch.amp.autocast('cuda', enabled=(DEVICE.type == "cuda")):
+            for x, y in loader:
+                x = x.to(DEVICE)
+                logits = model(x).cpu()
+                all_logits.append(logits)
+                all_labels.append(y)
+
     logits  = torch.cat(all_logits).numpy().flatten()
     labels  = torch.cat(all_labels).numpy().flatten()
     probs   = 1 / (1 + np.exp(-logits))
@@ -184,10 +188,15 @@ def evaluate(model, loader):
         metrics["roc_auc"] = float(roc_auc_score(labels, probs))
     except Exception:
         metrics["roc_auc"] = 0.5
+    try:
+        metrics["pr_auc"] = float(average_precision_score(labels, probs))
+    except Exception:
+        metrics["pr_auc"] = float(np.mean(labels))
     metrics["cm"]     = confusion_matrix(labels, preds, labels=[0, 1])
     metrics["probs"]  = probs
     metrics["labels"] = labels
     return metrics
+
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -336,6 +345,7 @@ def train_model(model, train_loader, val_loader, criterion, name, epochs=EPOCHS,
     best_metrics  = {}
     patience_cnt  = 0
     t0 = time.time()
+    scaler = torch.amp.GradScaler('cuda', enabled=(DEVICE.type == "cuda"))
 
     for epoch in range(epochs):
         # ── Training ──
@@ -344,9 +354,12 @@ def train_model(model, train_loader, val_loader, criterion, name, epochs=EPOCHS,
         for x, y in train_loader:
             x, y = x.to(DEVICE), y.to(DEVICE)
             optimizer.zero_grad()
-            loss = criterion(model(x), y)
-            loss.backward()
-            optimizer.step()
+            with torch.amp.autocast('cuda', enabled=(DEVICE.type == "cuda")):
+                logits = model(x)
+                loss = criterion(logits, y)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             epoch_loss += loss.item() * x.size(0)
         avg_train = epoch_loss / max(len(train_loader.dataset), 1)
         train_losses.append(avg_train)
@@ -355,11 +368,14 @@ def train_model(model, train_loader, val_loader, criterion, name, epochs=EPOCHS,
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
-            for x, y in val_loader:
-                x, y = x.to(DEVICE), y.to(DEVICE)
-                val_loss += criterion(model(x), y).item() * x.size(0)
+            with torch.amp.autocast('cuda', enabled=(DEVICE.type == "cuda")):
+                for x, y in val_loader:
+                    x, y = x.to(DEVICE), y.to(DEVICE)
+                    val_loss += criterion(model(x), y).item() * x.size(0)
         avg_val = val_loss / max(len(val_loader.dataset), 1)
         val_losses.append(avg_val)
+
+
 
         # ── Validation ROC-AUC Checkpointing ──
         val_metrics = evaluate(model, val_loader)
@@ -519,9 +535,10 @@ def main(args=None):
         )
         print(low_support_flag)
 
-    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=2, pin_memory=True)
-    val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
-    test_loader  = DataLoader(test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=0, pin_memory=True)
+    val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
+    test_loader  = DataLoader(test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
+
 
     balance_filename = "class_balance_real.txt" if is_real else "class_balance.txt"
     pos_weight_val = read_pos_weight(balance_filename)
@@ -598,6 +615,12 @@ def main(args=None):
                 threshold=tuned_th, n_bootstraps=1000, confidence_level=0.95, seed=seed
             )
 
+            # Save Reliability Diagram
+            figures_dir = os.path.join(REPORTS_DIR, "figures")
+            os.makedirs(figures_dir, exist_ok=True)
+            rel_path = os.path.join(figures_dir, f"calibration_{run_tag}.png")
+            plot_reliability_diagram(test_labels, test_probs, title=f"Reliability Diagram: {run_tag}", save_path=rel_path)
+
             prim_row = {
                 "model": name,
                 "seed": seed,
@@ -605,15 +628,21 @@ def main(args=None):
                 "val_auc": val_auc,
                 "val_f1": val_f1,
                 "tuned_th": tuned_th,
-                "accuracy": float(test_eval["accuracy"]),
-                "precision": float(test_eval["precision"]),
-                "recall": float(test_eval["recall"]),
-                "f1": float(test_eval["f1"]),
-                "f1_ci": f"[{boot['f1_ci'][0]:.4f}, {boot['f1_ci'][1]:.4f}]",
-                "roc_auc": float(test_eval["roc_auc"]),
-                "roc_auc_ci": f"[{boot['roc_auc_ci'][0]:.4f}, {boot['roc_auc_ci'][1]:.4f}]",
                 "pr_auc": float(test_eval["pr_auc"]),
                 "pr_auc_ci": f"[{boot['pr_auc_ci'][0]:.4f}, {boot['pr_auc_ci'][1]:.4f}]",
+                "roc_auc": float(test_eval["roc_auc"]),
+                "roc_auc_ci": f"[{boot['roc_auc_ci'][0]:.4f}, {boot['roc_auc_ci'][1]:.4f}]",
+                "mcc": float(test_eval["mcc"]),
+                "mcc_ci": f"[{boot['mcc_ci'][0]:.4f}, {boot['mcc_ci'][1]:.4f}]",
+                "balanced_accuracy": float(test_eval["balanced_accuracy"]),
+                "bal_acc_ci": f"[{boot['bal_acc_ci'][0]:.4f}, {boot['bal_acc_ci'][1]:.4f}]",
+                "f1": float(test_eval["f1"]),
+                "f1_ci": f"[{boot['f1_ci'][0]:.4f}, {boot['f1_ci'][1]:.4f}]",
+                "precision": float(test_eval["precision"]),
+                "recall": float(test_eval["recall"]),
+                "ece": float(test_eval["ece"]),
+                "mce": float(test_eval["mce"]),
+                "accuracy": float(test_eval["accuracy"]),
                 "prevalence": f"{100*test_prev:.1f}%",
                 "support": test_eval["support"],
                 "params": params,
@@ -623,9 +652,12 @@ def main(args=None):
             seed_runs.append((prim_row, test_probs, test_labels))
 
             print(f"  Test Metrics (Tuned Th={tuned_th:.2f}):")
-            print(f"    F1       : {prim_row['f1']:.4f} (95% CI: {prim_row['f1_ci']})")
+            print(f"    PR-AUC   : {prim_row['pr_auc']:.4f} (95% CI: {prim_row['pr_auc_ci']}) [Headline Metric]")
             print(f"    ROC-AUC  : {prim_row['roc_auc']:.4f} (95% CI: {prim_row['roc_auc_ci']})")
-            print(f"    PR-AUC   : {prim_row['pr_auc']:.4f} (95% CI: {prim_row['pr_auc_ci']}) [Prev: {prim_row['prevalence']}]")
+            print(f"    MCC      : {prim_row['mcc']:.4f} (95% CI: {prim_row['mcc_ci']})")
+            print(f"    Bal Acc  : {prim_row['balanced_accuracy']:.4f} (95% CI: {prim_row['bal_acc_ci']})")
+            print(f"    F1       : {prim_row['f1']:.4f} (95% CI: {prim_row['f1_ci']})")
+            print(f"    ECE      : {prim_row['ece']:.4f}")
             print(f"    Support  : {prim_row['support']}")
 
             # 4. Ambiguity-removed evaluation
@@ -642,15 +674,21 @@ def main(args=None):
                     "val_auc": val_auc,
                     "val_f1": val_f1,
                     "tuned_th": tuned_th,
-                    "accuracy": float(clean_eval["accuracy"]),
-                    "precision": float(clean_eval["precision"]),
-                    "recall": float(clean_eval["recall"]),
-                    "f1": float(clean_eval["f1"]),
-                    "f1_ci": f"[{clean_boot['f1_ci'][0]:.4f}, {clean_boot['f1_ci'][1]:.4f}]",
-                    "roc_auc": float(clean_eval["roc_auc"]),
-                    "roc_auc_ci": f"[{clean_boot['roc_auc_ci'][0]:.4f}, {clean_boot['roc_auc_ci'][1]:.4f}]",
                     "pr_auc": float(clean_eval["pr_auc"]),
                     "pr_auc_ci": f"[{clean_boot['pr_auc_ci'][0]:.4f}, {clean_boot['pr_auc_ci'][1]:.4f}]",
+                    "roc_auc": float(clean_eval["roc_auc"]),
+                    "roc_auc_ci": f"[{clean_boot['roc_auc_ci'][0]:.4f}, {clean_boot['roc_auc_ci'][1]:.4f}]",
+                    "mcc": float(clean_eval["mcc"]),
+                    "mcc_ci": f"[{clean_boot['mcc_ci'][0]:.4f}, {clean_boot['mcc_ci'][1]:.4f}]",
+                    "balanced_accuracy": float(clean_eval["balanced_accuracy"]),
+                    "bal_acc_ci": f"[{clean_boot['bal_acc_ci'][0]:.4f}, {clean_boot['bal_acc_ci'][1]:.4f}]",
+                    "f1": float(clean_eval["f1"]),
+                    "f1_ci": f"[{clean_boot['f1_ci'][0]:.4f}, {clean_boot['f1_ci'][1]:.4f}]",
+                    "precision": float(clean_eval["precision"]),
+                    "recall": float(clean_eval["recall"]),
+                    "ece": float(clean_eval["ece"]),
+                    "mce": float(clean_eval["mce"]),
+                    "accuracy": float(clean_eval["accuracy"]),
                     "prevalence": f"{100*clean_eval['prevalence']:.1f}%",
                     "support": clean_eval["support"],
                     "params": params,
@@ -658,9 +696,13 @@ def main(args=None):
                 }
                 clean_records.append(clean_row)
                 print(f"  Clean Test Metrics (Ambiguity Removed):")
-                print(f"    F1       : {clean_row['f1']:.4f} (95% CI: {clean_row['f1_ci']})")
+                print(f"    PR-AUC   : {clean_row['pr_auc']:.4f} (95% CI: {clean_row['pr_auc_ci']}) [Headline Metric]")
                 print(f"    ROC-AUC  : {clean_row['roc_auc']:.4f} (95% CI: {clean_row['roc_auc_ci']})")
-                print(f"    PR-AUC   : {clean_row['pr_auc']:.4f} (95% CI: {clean_row['pr_auc_ci']}) [Prev: {clean_row['prevalence']}]")
+                print(f"    MCC      : {clean_row['mcc']:.4f} (95% CI: {clean_row['mcc_ci']})")
+                print(f"    Bal Acc  : {clean_row['balanced_accuracy']:.4f} (95% CI: {clean_row['bal_acc_ci']})")
+                print(f"    F1       : {clean_row['f1']:.4f} (95% CI: {clean_row['f1_ci']})")
+                print(f"    ECE      : {clean_row['ece']:.4f}")
+
 
             # Save plots for this run
             save_loss_curve(train_losses, val_losses, run_tag)
@@ -735,24 +777,26 @@ def main(args=None):
         + ("(Real Chandrayaan-2 DFSAR L1A quad-pol SLI, lines 100,000–140,000).\n" if is_real else "(physically-motivated SAR scene).\n")
         + f"> **Protocol:** Max {epochs_used} epochs, early stopping on Val ROC-AUC (patience 5), Val-tuned decision threshold, 95% block-bootstrap CIs across strips (1000 rounds).\n\n"
         + "## 1. Primary Benchmark (Full Spatial Test Set: N=338, Prevalence=29.9%)\n\n"
-        + "| Model | Seed | Best Ep | Val AUC | Test ROC-AUC (95% CI) | Test PR-AUC (95% CI) | Test F1 (95% CI) | Tuned Th | Prev | Support |\n"
-        + "|---|---|---|---|---|---|---|---|---|---|\n"
+        + "| Model | Seed | Best Ep | Val AUC | PR-AUC (Primary) (95% CI) | ROC-AUC (95% CI) | MCC (95% CI) | Balanced Acc (95% CI) | F1 (95% CI) | ECE | Tuned Th | Support |\n"
+        + "|---|---|---|---|---|---|---|---|---|---|---|---|\n"
     )
 
     # Add DL model rows
     for r in primary_records:
         summary_md += (
             f"| {r['model']} | {r['seed']} | {r['best_epoch']} | {r['val_auc']:.4f} | "
-            f"**{r['roc_auc']:.4f}**<br>`{r['roc_auc_ci']}` | **{r['pr_auc']:.4f}**<br>`{r['pr_auc_ci']}` | "
-            f"**{r['f1']:.4f}**<br>`{r['f1_ci']}` | {r['tuned_th']:.2f} | {r['prevalence']} | {r['support']} |\n"
+            f"**{r['pr_auc']:.4f}**<br>`{r['pr_auc_ci']}` | **{r['roc_auc']:.4f}**<br>`{r['roc_auc_ci']}` | "
+            f"**{r.get('mcc', 0.0):.4f}**<br>`{r.get('mcc_ci', '[-,-]')}` | {r.get('balanced_accuracy', 0.0):.4f}<br>`{r.get('bal_acc_ci', '[-,-]')}` | "
+            f"**{r['f1']:.4f}**<br>`{r['f1_ci']}` | {r.get('ece', 0.0):.4f} | {r['tuned_th']:.2f} | {r['support']} |\n"
         )
 
     # Add Classical Baseline rows
     for b in baseline_primary:
         summary_md += (
             f"| {b['model']} | - | - | - | "
-            f"**{b['roc_auc']:.4f}**<br>`{b['roc_auc_ci']}` | **{b['pr_auc']:.4f}**<br>`{b['pr_auc_ci']}` | "
-            f"**{b['f1']:.4f}**<br>`{b['f1_ci']}` | {b['threshold']:.2f} | {b['prevalence']} | {b['support']} |\n"
+            f"**{b['pr_auc']:.4f}**<br>`{b['pr_auc_ci']}` | **{b['roc_auc']:.4f}**<br>`{b['roc_auc_ci']}` | "
+            f"**{b.get('mcc', 0.0):.4f}**<br>`{b.get('mcc_ci', '[-,-]')}` | {b.get('balanced_accuracy', 0.0):.4f}<br>`{b.get('bal_acc_ci', '[-,-]')}` | "
+            f"**{b['f1']:.4f}**<br>`{b['f1_ci']}` | {b.get('ece', 0.0):.4f} | {b['threshold']:.2f} | {b['support']} |\n"
         )
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -764,21 +808,24 @@ def main(args=None):
             "## 2. Ambiguity-Removed Benchmark (Clean Test Set: N=205, Prevalence=49.3%)\n\n"
             "> **NOTE ON AMBIGUITY ABLATION:**\n"
             "> Excludes 133 test patches containing between 1 and 4 positive pixels (the boundary transition band). Leaves 205 clean patches (101 positive, 104 negative).\n\n"
-            "| Model | Seed | Best Ep | Val AUC | Test ROC-AUC (95% CI) | Test PR-AUC (95% CI) | Test F1 (95% CI) | Tuned Th | Prev | Support |\n"
-            "|---|---|---|---|---|---|---|---|---|---|\n"
+            "| Model | Seed | Best Ep | Val AUC | PR-AUC (Primary) (95% CI) | ROC-AUC (95% CI) | MCC (95% CI) | Balanced Acc (95% CI) | F1 (95% CI) | ECE | Tuned Th | Support |\n"
+            "|---|---|---|---|---|---|---|---|---|---|---|---|\n"
         )
         for r in clean_records:
             summary_md += (
                 f"| {r['model']} | {r['seed']} | {r['best_epoch']} | {r['val_auc']:.4f} | "
-                f"**{r['roc_auc']:.4f}**<br>`{r['roc_auc_ci']}` | **{r['pr_auc']:.4f}**<br>`{r['pr_auc_ci']}` | "
-                f"**{r['f1']:.4f}**<br>`{r['f1_ci']}` | {r['tuned_th']:.2f} | {r['prevalence']} | {r['support']} |\n"
+                f"**{r['pr_auc']:.4f}**<br>`{r['pr_auc_ci']}` | **{r['roc_auc']:.4f}**<br>`{r['roc_auc_ci']}` | "
+                f"**{r.get('mcc', 0.0):.4f}**<br>`{r.get('mcc_ci', '[-,-]')}` | {r.get('balanced_accuracy', 0.0):.4f}<br>`{r.get('bal_acc_ci', '[-,-]')}` | "
+                f"**{r['f1']:.4f}**<br>`{r['f1_ci']}` | {r.get('ece', 0.0):.4f} | {r['tuned_th']:.2f} | {r['support']} |\n"
             )
         for b in baseline_clean:
             summary_md += (
                 f"| {b['model']} | - | - | - | "
-                f"**{b['roc_auc']:.4f}**<br>`{b['roc_auc_ci']}` | **{b['pr_auc']:.4f}**<br>`{b['pr_auc_ci']}` | "
-                f"**{b['f1']:.4f}**<br>`{b['f1_ci']}` | {b['threshold']:.2f} | {b['prevalence']} | {b['support']} |\n"
+                f"**{b['pr_auc']:.4f}**<br>`{b['pr_auc_ci']}` | **{b['roc_auc']:.4f}**<br>`{b['roc_auc_ci']}` | "
+                f"**{b.get('mcc', 0.0):.4f}**<br>`{b.get('mcc_ci', '[-,-]')}` | {b.get('balanced_accuracy', 0.0):.4f}<br>`{b.get('bal_acc_ci', '[-,-]')}` | "
+                f"**{b['f1']:.4f}**<br>`{b['f1_ci']}` | {b.get('ece', 0.0):.4f} | {b['threshold']:.2f} | {b['support']} |\n"
             )
+
 
     # ──────────────────────────────────────────────────────────────────────────
     # Statistical Rigour / Executive Summary / Analysis
