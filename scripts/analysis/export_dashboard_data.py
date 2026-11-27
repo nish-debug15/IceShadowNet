@@ -293,7 +293,7 @@ def export_results_json():
     results_data = {
         "metadata": {
             "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "dataset": "Chandrayaan-2 DFSAR L1A quad-pol SLI (lines 100,000–140,000)",
+            "dataset": "Chandrayaan-2 DFSAR L1A quad-pol SLI (lines 90,624–319,812)",
             "test_patches_full": 338,
             "test_patches_clean": 205,
             "n_runs": len(runs_out),
@@ -927,7 +927,7 @@ def export_meta_json(auc_table):
     meta = {
         "project": "IceShadowNet",
         "description": "Lunar Polar Permanently Shadowed Region (PSR) Ice Detection via DFSAR SAR Imagery",
-        "data_source": "Chandrayaan-2 DFSAR L1A quad-pol SLI (lines 100,000–140,000)",
+        "data_source": "Chandrayaan-2 DFSAR L1A quad-pol SLI (lines 90,624–319,812)",
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "features": {
             "model_input_features": [
@@ -989,6 +989,40 @@ def export_meta_json(auc_table):
 # ──────────────────────────────────────────────────────────────────────────────
 # MAIN PIPELINE
 # ──────────────────────────────────────────────────────────────────────────────
+def export_segmentation_uncertainty():
+    """Export precomputed Block 2 (U-Net) & Block 3 (Uncertainty, Optuna, Pruning) JSON + PNGs."""
+    import shutil
+    seg_dir = os.path.join(OUTPUT_BASE, "segmentation")
+    os.makedirs(seg_dir, exist_ok=True)
+
+    fig_src_dir = os.path.join(REPORTS_DIR, "figures")
+    for png in [
+        "unet_overlays.png",
+        "unet_reliability.png",
+        "unet_ensemble_reliability.png",
+        "unet_selective_prediction.png",
+    ]:
+        src = os.path.join(fig_src_dir, png)
+        if os.path.isfile(src):
+            shutil.copy2(src, os.path.join(seg_dir, png))
+
+    def load_j(name):
+        p = os.path.join(REPORTS_DIR, name)
+        return json.load(open(p, "r", encoding="utf-8")) if os.path.isfile(p) else {}
+
+    payload = {
+        "unet": load_j("unet_segmentation_report.json"),
+        "uncertainty": load_j("uncertainty_report.json"),
+        "efficiency": load_j("efficiency_report.json"),
+        "block1": load_j("block1_benchmark_report.json"),
+        "five_fold_cv": load_j("five_fold_cv.json"),
+    }
+    out_file = os.path.join(OUTPUT_BASE, "segmentation_uncertainty.json")
+    with open(out_file, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+    print(f"  -> Saved {out_file} ({os.path.getsize(out_file)/1024:.1f} KB)")
+
+
 def main():
     t_start = time.time()
     print("=" * 70)
@@ -1019,6 +1053,9 @@ def main():
 
     # 8. Meta JSON
     export_meta_json(auc_table)
+
+    # 9. Segmentation & Uncertainty (Blocks 2 & 3)
+    export_segmentation_uncertainty()
 
     # Verification of sizes
     total_bytes = 0

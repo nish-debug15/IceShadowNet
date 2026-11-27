@@ -1,181 +1,77 @@
-# IceShadowNet
+# IceShadowNet 2.0
 
-**Deep Learning-Based Detection of Potential Subsurface Ice in Lunar South Polar Regions Using Chandrayaan-2 DFSAR Data: A Comparative Study of Custom CNN and ResNet (with Multimodal OHRC as Synthetic Future Work)**
+**Deep Learning-Based Detection, Pixel-Level Segmentation, and Uncertainty Quantification of Lunar South Polar Radar Anomalies Using Chandrayaan-2 DFSAR L-Band Quad-Pol Data**
 
-> Motivated by ISRO's Chandrayaan-2 lunar ice characterization problem. This project extracts a focused, defensible Deep Learning research question from that domain rather than reproducing the full hackathon pipeline (GIS + radar processing + rover path planning).
+> Motivated by ISRO's Chandrayaan-2 lunar polar ice characterization problem. **Note:** Labels are radar-derived polarimetric proxy labels ($\text{CPR} > 1.0 \land \text{DOP} < 0.13$ on $7 \times 7$ multilooked data) and do **not** directly confirm physical water ice.
 
 ---
 
-## 1. Overview & Scope Clarification
+## 1. Core Research Narrative
 
-IceShadowNet investigates whether deep learning models can distinguish **anomalous polarimetric radar signatures** from **typical lunar regolith backscatter** in lunar south-polar regions, using real Chandrayaan-2 **DFSAR** (Dual Frequency Synthetic Aperture Radar) L-band quad-polarimetric data.
+1. **ImageNet Pretraining Fails to Transfer to SAR:** Optical RGB features (`ResNet_pretrained` Test ROC-AUC `0.7970`, PR-AUC `0.4529`) consistently underperform training from scratch (`0.8301` / `0.5203`) due to microwave speckle vs. optical reflectance domain mismatch.
+2. **In-Domain SimCLR SSL Solves the Low-Label Regime:** Contrastive pretraining (`ResNet_SSL`) on 11,868 unlabeled Train+Val radar patches (strictly zero test leakage) with physics-aware SAR augmentations boosts 10%-label Test ROC-AUC from `0.51–0.54` (`ResNet_scratch`) to **`0.78–0.80`**.
+3. **Patch-Level Classification Hits an Ambiguity Ceiling (Honest Negative Result):** Across both our frozen test split (`CustomCNN 0.8379` vs `LogisticRegression 0.8207` ROC-AUC) and 5-fold blocked-strip CV across all 20 strips (`CustomCNN 0.8124 ± 0.0408` vs `LogisticRegression 0.8118 ± 0.0460`), patch-level CNNs tie Logistic Regression because `34.7%` of patches (`4,960 / 14,282`) fall in the `1–4 px` ambiguity band just below the `>=5 px` cutoff (`80.9%` of CustomCNN FPs are `1–4 px` transition patches).
+4. **MC-Dropout U-Net Resolves Threshold Ambiguity:** Pixel-level `IceUNet` on raw `[HH, HV, VV]` log-intensities achieves **`0.9380 ± 0.0050` Pixel ROC-AUC** and **`0.0093 ± 0.0003` Pixel PR-AUC** (`17.6×` over the `0.0527%` pixel baseline, `~8×` over Pixel LogReg `0.0012` and HV/HH Ratio `0.0011`), while a 3-seed U-Net Ensemble reaches **`0.9518` Pixel ROC-AUC** and **`0.0110` Pixel PR-AUC**.
 
-> **Scope Decision (Real vs. Synthetic Data):**
-> - **Real-Data Pipeline:** **DFSAR-only**. Real L1A complex slant-range (SLI) quad-polarimetric data (`ch2_sar_ncxl_20260308`) is processed to synthesize circular polarization channels and derive multilooked CPR and DOP labels.
-> - **Multimodal (OHRC) Pipeline:** **Synthetic-only future work** *(synthetic demo, not part of the real-data benchmark)*. The downloaded real OHRC optical tile (`ch2_ohr_ncp_20260719`) does not geographically overlap the DFSAR acquisition strip (~35° longitude separation / ~1,800 km apart). Multimodal fusion architectures (EarlyFusionCNN, LateFusionResNet) are validated on synthetic data only and scoped as future work pending overlapping optical coverage.
+---
 
-## 2. Scientific Framing & Limitations
+## 2. Frozen Dataset & Leak-Free Split (`[90624, 319812]`)
 
-- **Label Interpretation:** Labels derived from $\text{CPR} > 1.0 \land \text{DOP} < 0.13$ define **"regions with anomalous circular polarization and low degree of polarization"** (consistent with multiple volume scattering / potential subsurface ice in lunar literature). Because no external PSR (Permanently Shadowed Region) or DEM slope mask is applied, labels denote **anomalous CPR regions**, NOT confirmed physical water-ice.
-- **Model Input Policy (Anti-Circularity):** Model inputs are strictly **raw radar log-intensities** ($\log_{10}|S_{HH}|^2, \log_{10}|S_{HV}|^2, \log_{10}|S_{VV}|^2$). Derived quantities (CPR, DOP) are strictly excluded from network inputs to prevent the models from trivially memorizing the labeling rule.
-- **Multilook Averaging:** Single-look complex radar data mathematically forces $\text{DOP} \equiv 1.0$ at every pixel. A $7 \times 7$ boxcar multilook filter is applied to the polarimetric covariance terms before calculating DOP and CPR.
+- **Scene:** `ch2_sar_ncxl_20260308t062017233` (Chandrayaan-2 DFSAR L1A Quad-Pol SLI, `319,812 × 116`).
+- **Active Rows:** `[90624, 319812]` (`229,188` valid rows = `71.66%` of strip; rows `0..90623` zero-padded).
+- **Inputs (Anti-Circularity):** Raw log-intensities `[HH, HV, VV]` only. Derived `CPR` and `DOP` are strictly excluded from model inputs.
+- **Deterministic Non-Adjacent Strip Split (`256`-row azimuth guard buffer, zero pixel-extent leakage):**
+  - **Train:** `9,828` patches (`1,614` pos, `16.42%`) across 14 strips
+  - **Val:** `2,040` patches (`335` pos, `16.42%`) across strips `[2, 6, 17]`
+  - **Test:** `2,018` patches (`332` pos, `16.45%`) across strips `[0, 8, 15]` (`[132, 70, 130]` pos)
+  - Manifest frozen in [`data/processed_real/split_manifest.json`](data/processed_real/split_manifest.json) and documented in [`reports/real/split_rationale.md`](reports/real/split_rationale.md).
 
-## 3. Objectives
+---
 
-- Build a leak-free labeled patch dataset from real DFSAR L1A complex imagery using spatial block splitting.
-- Implement a custom CNN from scratch and adapt ResNet18 for raw multi-channel SAR backscatter.
-- Compare models on Accuracy, Precision, Recall, F1, ROC-AUC, training time, parameter count, and confusion matrix.
-- Evaluate classical baselines (Plain Threshold and Decision Tree on CPR/DOP) on the identical spatial test split.
-- Use Grad-CAM to evaluate whether models attend to physically plausible radar backscatter features.
+## 3. Benchmark Results (Identical Frozen Split)
 
-## 4. Dataset
+### 3.1 Patch-Level Classification (Test Set: `N = 2,018`, Prevalence = `16.45%`)
 
-| Source | Payload | Processing Level | Status / Use |
-|---|---|---|---|
-| Chandrayaan-2 | DFSAR (L-band quad-pol) | L1A SLI (Complex float32) | **REAL:** Primary input; quad-pol complex scattering matrix ($S_{HH}, S_{HV}, S_{VH}, S_{VV}$) |
-| Chandrayaan-2 | OHRC (Panchromatic optical) | Calibrated L1 | **FUTURE WORK:** Disjoint footprint; preserved for future multimodal alignment *(synthetic demo, not part of the real-data benchmark)* |
+| Model | ROC-AUC | PR-AUC (Baseline 16.45%) | F1 (Val Th) | F1 (Best Test Th) | Clean ROC-AUC (Ablation) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **IceUNet (Optuna, agg: mean_prob)** | **0.8497** | — | — | — | — |
+| **CustomCNN (3 seeds)** | `0.8379 ± 0.0007` | `0.5485 ± 0.0102` | `0.5216 ± 0.0054` | `0.5459 ± 0.0040` | `0.9103 ± 0.0021` |
+| **IceUNet (3 seeds, agg: mean_prob)** | `0.8335` | `0.5404` | `0.5185` | `0.5394` | `0.9035` |
+| **ResNet_scratch (3 seeds)** | `0.8301 ± 0.0064` | `0.5203 ± 0.0135` | `0.5240 ± 0.0057` | `0.5269 ± 0.0047` | `0.8961 ± 0.0119` |
+| **LogisticRegression** | `0.8207` | `0.4976` | `0.5086` | `0.5089` | `0.8811` |
+| **ResNet_pretrained (3 seeds)** | `0.7970 ± 0.0123` | `0.4529 ± 0.0126` | `0.4687 ± 0.0280` | `0.4864 ± 0.0106` | `0.8633 ± 0.0079` |
+| **DecisionTree (depth=3)** | `0.6160` | `0.2133` | `0.3143` | `0.3206` | `0.5986` |
 
-- **Real DFSAR tile:** `ch2_sar_ncxl_20260308t062017233` (South Polar strip, −81.7° to −86.3° latitude).
-- **Label rule:** $\text{CPR} > 1.0 \land \text{DOP} < 0.13$ with multilook window $W=7$ ($\ge 5$ candidate pixels per $64 \times 64$ patch).
-- **Split strategy:** Spatial block split grid $(1, 20)$ along the ground track to prevent adjacent patch leakage.
+- **5-Fold Blocked-Strip CV (All 20 Strips, 256-row buffer):** `CustomCNN` `0.8124 ± 0.0408` ROC-AUC vs `LogisticRegression` `0.8118 ± 0.0460` ROC-AUC ([`reports/real/five_fold_cv.md`](reports/real/five_fold_cv.md)).
 
-## 5. Methodology
+### 3.2 Pixel-Level Segmentation & Uncertainty (`8,265,728` Test Pixels, Prevalence = `0.0527%`)
 
-```
-Real DFSAR L1A Complex SLI (HH, HV, VH, VV)
-        ↓
-Multilook Polarimetric Analysis (W=7 boxcar)
-   ├── S_RR = 0.5 * ((Shh - Svv) + 2i*Shv)   [Same-sense circular]
-   └── S_RL = 0.5 * (Shh + Svv)              [Opposite-sense circular]
-        ↓
-Label Generation: CPR > 1.0 & DOP < 0.13 (min 5 px/patch)
-        ↓
-Model Input Construction: Raw Log-Intensities [HH, HV, VV]
-(CPR and DOP strictly excluded from inputs)
-        ↓
-Spatial Block Split (Grid 1x20, zero spatial leakage)
-        ↓
-Model Training (CustomCNN, ResNet-scratch, ResNet-pretrained) & Baselines (Threshold, Decision Tree)
-        ↓
-Evaluation & Grad-CAM Explainability
-```
+| Model | Pixel PR-AUC | Pixel ROC-AUC | Dice (Val Th) | IoU (Val Th) | ECE |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| Baseline: HV/HH Ratio | `0.0011` | `0.6960` | `0.0036` | `0.0018` | — |
+| Baseline: Pixel LogReg | `0.0012` | `0.7023` | `0.0016` | `0.0008` | — |
+| **IceUNet (3 seeds)** | `0.0093 ± 0.0003` | `0.9380 ± 0.0050` | `0.0266 ± 0.0045` | `0.0135 ± 0.0023` | — |
+| **IceUNet MC Dropout (`T=20`)** | `0.0094` | `0.9361` | `0.0302` | `0.0153` | `0.04307` |
+| **IceUNet (Optuna Val-Tuned)** | `0.0108` | `0.9484` | `0.0286` | `0.0145` | — |
+| **IceUNet 3-Seed Ensemble** | **`0.0110`** | **`0.9518`** | **`0.0334`** | **`0.0170`** | `0.04794` |
 
-## 6. Results
+### 3.3 Magnitude Pruning (`IceUNet_seed42` + 3-Epoch Fine-Tune)
 
-> **Real-Data Benchmark & Analysis:**  
-> For the completed real Chandrayaan-2 DFSAR benchmark results and scientific interpretation, see:
-> - **[Section 3 Analysis Draft](reports/real/section3_analysis.md)**: Headline finding (no deep model beats Logistic Regression on pooled metrics), CustomCNN vs ResNet_scratch parameter efficiency tie, ImageNet pretraining transfer breakdown, per-strip prevalence dynamics, and baseline sensitivity.
-> - **[Real-Data Benchmark Results (Spatial Block-Bootstrap CIs)](reports/real/results_real_ci_all.md)**: Default and conditional 95% CIs across all 15 deep learning runs (seeds 42, 123, 2024) and classical baselines on full and clean test sets.
-> - **[Along-Track Per-Strip Metrics Breakdown](reports/real/per_strip_metrics.md)**: Granular strip-by-strip (strips 6, 10, 14) breakdown and zero-TP detection analysis.
-> - **[Architecture Comparison](reports/real/results_real_variants_comparison.md)**: Cross-variant summary including ResNet_pretrained v2a/v2b.
-> - **[Interactive Web Dashboard](dashboard/)**: Interactive visual exploration of benchmark metrics, pipeline stages, and patch classifications. Live dashboard: (add URL after deploy)
+At **90% unstructured sparsity** (`110,521` vs `1,084,681` non-zero params, `9.8×` parameter reduction), `Patch Mean-Prob ROC-AUC` remains `0.8351` (vs `0.8291` unpruned) and Pixel Dice remains `0.0258` (vs `0.0295`). Dense PyTorch CUDA latency remains `~11.2 ms / batch of 64` because unstructured zero-masks do not trigger sparse tensor kernels.
 
-> **Historical Synthetic Pipeline Benchmark:**  
-> *(synthetic demo, not part of the real-data benchmark)*  
-> Demonstrates initial pipeline execution across multiple seeds and epochs on synthetic data.
+---
 
-| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | Support | Params | Time (s) |
-|---|---|---|---|---|---|---|---|---|
-| CustomCNN | 0.7361±0.0196 | 0.4444±0.3143 | 0.1905±0.1347 | 0.2667±0.1886 | 0.6751±0.0555 | TP:2 FP:1 FN:5 TN:16 (Pos:7 Neg:17) | 618,209 | 76.0 |
-| ResNet (Scratch) | 0.8194±0.0393 | 0.7361±0.0856 | 0.6190±0.1347 | 0.6605±0.0915 | 0.8459±0.0914 | TP:3 FP:1 FN:4 TN:16 (Pos:7 Neg:17) | 11,173,889 | 151.1 |
-| ResNet (Pretrained) | 0.7778±0.0196 | 0.6488±0.0748 | 0.5714±0.1166 | 0.5945±0.0521 | 0.8403±0.0562 | TP:4 FP:3 FN:3 TN:14 (Pos:7 Neg:17) | 6,067,201 | 73.9 |
-| EarlyFusionCNN *(synthetic demo)* | 0.7222±0.0196 | 0.2222±0.3143 | 0.0952±0.1347 | 0.1333±0.1886 | 0.4594±0.0309 | TP:0 FP:0 FN:7 TN:17 (Pos:7 Neg:17) | 618,497 | 54.0 |
-| LateFusionResNet *(synthetic demo)* | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | 1.0000±0.0000 | TP:7 FP:0 FN:0 TN:17 (Pos:7 Neg:17) | 22,606,273 | 200.1 |
+## 4. Key Reports & Artifacts
 
-## 7. Experiments
+- **Block 1 Benchmark & Before/After Table:** [`reports/real/block1_benchmark_report.md`](reports/real/block1_benchmark_report.md)
+- **Split Rationale & 5-Fold CV:** [`reports/real/split_rationale.md`](reports/real/split_rationale.md), [`reports/real/five_fold_cv.md`](reports/real/five_fold_cv.md)
+- **SimCLR SSL & Circularity Ablation:** [`reports/real/ssl_pretraining.md`](reports/real/ssl_pretraining.md), [`reports/real/circularity_ablation.md`](reports/real/circularity_ablation.md)
+- **Block 2 U-Net Segmentation:** [`reports/real/unet_segmentation_report.md`](reports/real/unet_segmentation_report.md)
+- **Block 3 Uncertainty, Optuna & Pruning:** [`reports/real/uncertainty_report.md`](reports/real/uncertainty_report.md), [`reports/real/efficiency_report.md`](reports/real/efficiency_report.md)
+- **TPS Georeferencing Audit:** [`reports/real/georeferencing_audit.md`](reports/real/georeferencing_audit.md)
+- **Research Report & Viva Q&A:** [`reports/real/research_report.md`](reports/real/research_report.md), [`reports/real/viva_qa.md`](reports/real/viva_qa.md)
+- **Interactive Dashboard:** [`dashboard/`](dashboard/) (includes `/segmentation/` view)
 
-| Experiment | Input | Status |
-|---|---|---|
-| CNN | DFSAR only | Real-data benchmark complete |
-| ResNet | DFSAR only | Real-data benchmark complete |
-| CNN (Early Fusion) | DFSAR + OHRC (multimodal) | Synthetic demo, not part of the real-data benchmark |
-| ResNet (Late Fusion) | DFSAR + OHRC (multimodal) | Synthetic demo, not part of the real-data benchmark |
-
-## 8. Tech Stack
-
-- **Language:** Python
-- **DL Framework:** PyTorch
-- **Geo/Radar processing:** GDAL, rasterio, NumPy, SciPy
-- **Visualization:** Matplotlib, QGIS (for geospatial output)
-- **Explainability:** Grad-CAM
-
-## 9. Repository Structure
-
-```
-IceShadowNet/
-├── data/
-│   ├── raw/
-│   │   └── MISSING_DATA.md      # PRADAN download guide for real DFSAR L1A tiles
-│   └── processed_real/          # Spatial NPZ splits (train, val, test)
-├── models_real/                 # PyTorch model weights for 15 real benchmark runs
-├── reports/
-│   ├── real/                    # Benchmark metrics, comparison tables, and analysis
-│   │   ├── section3_analysis.md # Section 3 draft: findings, comparisons, limitations
-│   │   ├── results_real_ci_all.md # 3-block bootstrap CIs (default & conditional)
-│   │   ├── per_strip_metrics.md # Granular along-track per-strip metrics (strips 6, 10, 14)
-│   │   ├── results_real_variants_comparison.md # Side-by-side comparison across all variants
-│   │   ├── trivial_baselines_and_ambiguity_note.md # All-positive baselines & ambiguity note
-│   │   └── training_summary*.json # Stored metrics for programmatic reproduction
-│   └── synthetic_archive/       # Archived placeholder synthetic reports
-├── scripts/
-│   ├── train_all.py             # Main DFSAR multi-seed training pipeline
-│   ├── baseline_real.py         # Decision Tree & Logistic Regression feature baselines
-│   ├── ingest_and_split.py      # Real DFSAR L1A tile ingestion & spatial block splitting
-│   ├── run_gradcam.py           # Grad-CAM heatmap visualization runner
-│   ├── _smoke_gpu.py            # 1-epoch GPU verification smoke test
-│   ├── train_multimodal.py      # Multimodal training (synthetic demo, not part of real benchmark)
-│   ├── ingest_multimodal.py     # Multimodal ingestion (synthetic demo, not part of real benchmark)
-│   ├── verify_real_tile.py      # DFSAR L1A GeoTIFF inspector
-│   └── analysis/                # Standalone analysis & metric reproduction tools
-│       ├── generate_comparison.py
-│       ├── compute_per_strip.py
-│       ├── generate_phase4_reports.py
-│       ├── compute_trivial.py
-│       ├── generate_ci_fixed.py
-│       └── audit_bootstrap.py
-├── src/
-│   ├── datasets/                # IcePatchDataset & spatial block split logic
-│   ├── models/                  # CustomCNN, IceResNet, MultimodalFusion
-│   ├── preprocessing/           # Multilooking, circular polarization, CPR/DOP
-│   ├── train.py                 # Core training loop & optimizer routines
-│   ├── evaluate.py              # Spatial block-bootstrap CI & metric evaluation
-│   └── gradcam.py               # Grad-CAM implementation
-├── tests/
-│   └── test_pipeline.py         # Pytest test suite (splitting, circularity, data ops)
-├── .github/workflows/tests.yml  # GitHub Actions CI workflow
-├── README.md
-├── PRD.md
-├── requirements.txt
-└── config.yaml
-```
-
-## 10. Setup
-
-```bash
-git clone https://github.com/nish-debug15/IceShadowNet
-cd IceShadowNet
-pip install -r requirements.txt
-```
-
-Data access: register at [PRADAN](https://pradan.issdc.gov.in/ch2/), download DFSAR/OHRC tiles for the target crater, place under `data/raw/`.
-
-## 11. Team
-
-| Role | Responsibility |
-|---|---|
-| Data & Labeling | DFSAR/OHRC acquisition, CPR/DOP labeling, spatial split |
-| Custom CNN | Architecture design, training, tuning |
-| ResNet | Adaptation for SAR input, transfer-learning decisions, training |
-| Evaluation & Explainability | Metrics, confusion matrix, Grad-CAM |
-| Integration & Report | Pipeline glue, geospatial mapping, report/demo assembly |
-
-## 12. Acknowledgement
+## 5. Acknowledgement
 
 > This research is based partially on the results obtained from the Chandrayaan-2, second lunar mission of the Indian Space Research Organisation (ISRO), archived at the Indian Space Science Data Centre (ISSDC).
-
-## 13. References
-
-- ISRO/ISSDC Chandrayaan-2 mission data — https://pradan.issdc.gov.in/ch2/
-- ISRO Lunar Polar Region overview — https://www.isro.gov.in/Lunar_Polar_Region.html
-- He et al., *Deep Residual Learning for Image Recognition* (ResNet), 2015
-- Selvaraju et al., *Grad-CAM: Visual Explanations from Deep Networks*, 2017

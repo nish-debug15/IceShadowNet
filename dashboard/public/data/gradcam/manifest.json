@@ -7,10 +7,10 @@
     {
       "slot": "failure_fp1",
       "category": "Failure FP #1",
-      "patch_idx": 217,
-      "strip_id": 10,
+      "patch_idx": 565,
+      "strip_id": 0,
       "coords": [
-        21728,
+        9664,
         32
       ],
       "true_label": 0,
@@ -18,7 +18,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7644397616386414,
+        "score": 0.9775390625,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/failure_fp1.webp"
@@ -26,25 +26,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.519957959651947,
+        "score": 0.5205078125,
         "gradcam_image": "data/gradcam/untrained/failure_fp1.webp"
       }
     },
     {
       "slot": "failure_fp2",
       "category": "Failure FP #2",
-      "patch_idx": 34,
-      "strip_id": 6,
+      "patch_idx": 641,
+      "strip_id": 0,
       "coords": [
-        12608,
-        0
+        10880,
+        32
       ],
       "true_label": 0,
       "base_image": "data/gradcam/base/failure_fp2.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7532727718353271,
+        "score": 0.974609375,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/failure_fp2.webp"
@@ -52,25 +52,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5223992466926575,
+        "score": 0.52294921875,
         "gradcam_image": "data/gradcam/untrained/failure_fp2.webp"
       }
     },
     {
       "slot": "failure_fn1",
       "category": "Failure FN #1",
-      "patch_idx": 277,
-      "strip_id": 14,
+      "patch_idx": 1302,
+      "strip_id": 8,
       "coords": [
-        28864,
-        32
+        102240,
+        0
       ],
       "true_label": 1,
       "base_image": "data/gradcam/base/failure_fn1.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.0011476179352030158,
+        "score": 0.2342529296875,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/failure_fn1.webp"
@@ -78,17 +78,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5202585458755493,
+        "score": 0.521484375,
         "gradcam_image": "data/gradcam/untrained/failure_fn1.webp"
       }
     },
     {
       "slot": "failure_fn2",
       "category": "Failure FN #2",
-      "patch_idx": 275,
-      "strip_id": 14,
+      "patch_idx": 261,
+      "strip_id": 0,
       "coords": [
-        28832,
+        4800,
         32
       ],
       "true_label": 1,
@@ -96,7 +96,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.0034750786144286394,
+        "score": 0.26025390625,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/failure_fn2.webp"
@@ -104,17 +104,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5229701399803162,
+        "score": 0.5205078125,
         "gradcam_image": "data/gradcam/untrained/failure_fn2.webp"
       }
     },
     {
       "slot": "tp_1",
       "category": "True Positive #1",
-      "patch_idx": 219,
-      "strip_id": 10,
+      "patch_idx": 567,
+      "strip_id": 0,
       "coords": [
-        21760,
+        9696,
         32
       ],
       "true_label": 1,
@@ -122,7 +122,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.8343508839607239,
+        "score": 0.98828125,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/tp_1.webp"
@@ -130,17 +130,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5215089321136475,
+        "score": 0.521484375,
         "gradcam_image": "data/gradcam/untrained/tp_1.webp"
       }
     },
     {
       "slot": "tp_2",
       "category": "True Positive #2",
-      "patch_idx": 221,
-      "strip_id": 10,
+      "patch_idx": 541,
+      "strip_id": 0,
       "coords": [
-        21792,
+        9280,
         32
       ],
       "true_label": 1,
@@ -148,7 +148,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.802954912185669,
+        "score": 0.98583984375,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/tp_2.webp"
@@ -156,17 +156,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5219922065734863,
+        "score": 0.5205078125,
         "gradcam_image": "data/gradcam/untrained/tp_2.webp"
       }
     },
     {
       "slot": "tp_3",
       "category": "True Positive #3",
-      "patch_idx": 215,
-      "strip_id": 10,
+      "patch_idx": 543,
+      "strip_id": 0,
       "coords": [
-        21696,
+        9312,
         32
       ],
       "true_label": 1,
@@ -174,7 +174,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7763983011245728,
+        "score": 0.98291015625,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/tp_3.webp"
@@ -182,25 +182,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5199323296546936,
+        "score": 0.52197265625,
         "gradcam_image": "data/gradcam/untrained/tp_3.webp"
       }
     },
     {
       "slot": "tp_4",
       "category": "True Positive #4",
-      "patch_idx": 104,
-      "strip_id": 6,
+      "patch_idx": 529,
+      "strip_id": 0,
       "coords": [
-        13728,
-        0
+        9088,
+        32
       ],
       "true_label": 1,
       "base_image": "data/gradcam/base/tp_4.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7614812850952148,
+        "score": 0.982421875,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/tp_4.webp"
@@ -208,25 +208,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5199258923530579,
+        "score": 0.52001953125,
         "gradcam_image": "data/gradcam/untrained/tp_4.webp"
       }
     },
     {
       "slot": "tp_5",
       "category": "True Positive #5",
-      "patch_idx": 52,
-      "strip_id": 6,
+      "patch_idx": 539,
+      "strip_id": 0,
       "coords": [
-        12896,
-        0
+        9248,
+        32
       ],
       "true_label": 1,
       "base_image": "data/gradcam/base/tp_5.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7496069073677063,
+        "score": 0.97998046875,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/tp_5.webp"
@@ -234,25 +234,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5224224925041199,
+        "score": 0.52197265625,
         "gradcam_image": "data/gradcam/untrained/tp_5.webp"
       }
     },
     {
       "slot": "tp_6",
       "category": "True Positive #6",
-      "patch_idx": 56,
-      "strip_id": 6,
+      "patch_idx": 585,
+      "strip_id": 0,
       "coords": [
-        12960,
-        0
+        9984,
+        32
       ],
       "true_label": 1,
       "base_image": "data/gradcam/base/tp_6.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7489458918571472,
+        "score": 0.9794921875,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/tp_6.webp"
@@ -260,17 +260,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5217146873474121,
+        "score": 0.5224609375,
         "gradcam_image": "data/gradcam/untrained/tp_6.webp"
       }
     },
     {
       "slot": "fp_1",
       "category": "False Positive #1",
-      "patch_idx": 217,
-      "strip_id": 10,
+      "patch_idx": 565,
+      "strip_id": 0,
       "coords": [
-        21728,
+        9664,
         32
       ],
       "true_label": 0,
@@ -278,7 +278,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7644397616386414,
+        "score": 0.9775390625,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/fp_1.webp"
@@ -286,25 +286,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.519957959651947,
+        "score": 0.5205078125,
         "gradcam_image": "data/gradcam/untrained/fp_1.webp"
       }
     },
     {
       "slot": "fp_2",
       "category": "False Positive #2",
-      "patch_idx": 34,
-      "strip_id": 6,
+      "patch_idx": 641,
+      "strip_id": 0,
       "coords": [
-        12608,
-        0
+        10880,
+        32
       ],
       "true_label": 0,
       "base_image": "data/gradcam/base/fp_2.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7532727718353271,
+        "score": 0.974609375,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/fp_2.webp"
@@ -312,17 +312,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5223992466926575,
+        "score": 0.52294921875,
         "gradcam_image": "data/gradcam/untrained/fp_2.webp"
       }
     },
     {
       "slot": "fp_3",
       "category": "False Positive #3",
-      "patch_idx": 53,
-      "strip_id": 6,
+      "patch_idx": 639,
+      "strip_id": 0,
       "coords": [
-        12896,
+        10848,
         32
       ],
       "true_label": 0,
@@ -330,7 +330,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7356016039848328,
+        "score": 0.96826171875,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/fp_3.webp"
@@ -338,25 +338,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.524848997592926,
+        "score": 0.52197265625,
         "gradcam_image": "data/gradcam/untrained/fp_3.webp"
       }
     },
     {
       "slot": "fp_4",
       "category": "False Positive #4",
-      "patch_idx": 54,
-      "strip_id": 6,
+      "patch_idx": 493,
+      "strip_id": 0,
       "coords": [
-        12928,
-        0
+        8512,
+        32
       ],
       "true_label": 0,
       "base_image": "data/gradcam/base/fp_4.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.718077540397644,
+        "score": 0.96484375,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/fp_4.webp"
@@ -364,25 +364,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5221732258796692,
+        "score": 0.52197265625,
         "gradcam_image": "data/gradcam/untrained/fp_4.webp"
       }
     },
     {
       "slot": "fp_5",
       "category": "False Positive #5",
-      "patch_idx": 36,
-      "strip_id": 6,
+      "patch_idx": 597,
+      "strip_id": 0,
       "coords": [
-        12640,
-        0
+        10176,
+        32
       ],
       "true_label": 0,
       "base_image": "data/gradcam/base/fp_5.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7136338949203491,
+        "score": 0.9619140625,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/fp_5.webp"
@@ -390,25 +390,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5221158862113953,
+        "score": 0.52392578125,
         "gradcam_image": "data/gradcam/untrained/fp_5.webp"
       }
     },
     {
       "slot": "fp_6",
       "category": "False Positive #6",
-      "patch_idx": 40,
-      "strip_id": 6,
+      "patch_idx": 1511,
+      "strip_id": 15,
       "coords": [
-        12704,
-        0
+        174880,
+        32
       ],
       "true_label": 0,
       "base_image": "data/gradcam/base/fp_6.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.7063364386558533,
+        "score": 0.9619140625,
         "threshold": 0.45,
         "prediction": 1,
         "gradcam_image": "data/gradcam/trained/fp_6.webp"
@@ -416,25 +416,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5231732726097107,
+        "score": 0.52294921875,
         "gradcam_image": "data/gradcam/untrained/fp_6.webp"
       }
     },
     {
       "slot": "fn_1",
       "category": "False Negative #1",
-      "patch_idx": 277,
-      "strip_id": 14,
+      "patch_idx": 1302,
+      "strip_id": 8,
       "coords": [
-        28864,
-        32
+        102240,
+        0
       ],
       "true_label": 1,
       "base_image": "data/gradcam/base/fn_1.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.0011476179352030158,
+        "score": 0.2342529296875,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/fn_1.webp"
@@ -442,17 +442,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5202585458755493,
+        "score": 0.521484375,
         "gradcam_image": "data/gradcam/untrained/fn_1.webp"
       }
     },
     {
       "slot": "fn_2",
       "category": "False Negative #2",
-      "patch_idx": 275,
-      "strip_id": 14,
+      "patch_idx": 261,
+      "strip_id": 0,
       "coords": [
-        28832,
+        4800,
         32
       ],
       "true_label": 1,
@@ -460,7 +460,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.0034750786144286394,
+        "score": 0.26025390625,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/fn_2.webp"
@@ -468,25 +468,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5229701399803162,
+        "score": 0.5205078125,
         "gradcam_image": "data/gradcam/untrained/fn_2.webp"
       }
     },
     {
       "slot": "fn_3",
       "category": "False Negative #3",
-      "patch_idx": 281,
-      "strip_id": 14,
+      "patch_idx": 752,
+      "strip_id": 8,
       "coords": [
-        28928,
-        32
+        93440,
+        0
       ],
       "true_label": 1,
       "base_image": "data/gradcam/base/fn_3.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.0066472189500927925,
+        "score": 0.35009765625,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/fn_3.webp"
@@ -494,25 +494,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5225372314453125,
+        "score": 0.52490234375,
         "gradcam_image": "data/gradcam/untrained/fn_3.webp"
       }
     },
     {
       "slot": "fn_4",
       "category": "False Negative #4",
-      "patch_idx": 231,
-      "strip_id": 14,
+      "patch_idx": 1300,
+      "strip_id": 8,
       "coords": [
-        28128,
-        32
+        102208,
+        0
       ],
       "true_label": 1,
       "base_image": "data/gradcam/base/fn_4.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.011399311944842339,
+        "score": 0.389892578125,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/fn_4.webp"
@@ -520,17 +520,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.523764967918396,
+        "score": 0.5234375,
         "gradcam_image": "data/gradcam/untrained/fn_4.webp"
       }
     },
     {
       "slot": "fn_5",
       "category": "False Negative #5",
-      "patch_idx": 229,
-      "strip_id": 14,
+      "patch_idx": 259,
+      "strip_id": 0,
       "coords": [
-        28096,
+        4768,
         32
       ],
       "true_label": 1,
@@ -538,7 +538,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.011616408824920654,
+        "score": 0.421630859375,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/fn_5.webp"
@@ -546,25 +546,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5219286680221558,
+        "score": 0.52490234375,
         "gradcam_image": "data/gradcam/untrained/fn_5.webp"
       }
     },
     {
       "slot": "fn_6",
       "category": "False Negative #6",
-      "patch_idx": 139,
-      "strip_id": 10,
+      "patch_idx": 750,
+      "strip_id": 8,
       "coords": [
-        20480,
-        32
+        93408,
+        0
       ],
       "true_label": 1,
       "base_image": "data/gradcam/base/fn_6.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 0.08972062170505524,
+        "score": 0.4443359375,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/fn_6.webp"
@@ -572,25 +572,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5231454968452454,
+        "score": 0.52294921875,
         "gradcam_image": "data/gradcam/untrained/fn_6.webp"
       }
     },
     {
       "slot": "tn_1",
       "category": "True Negative #1",
-      "patch_idx": 244,
-      "strip_id": 14,
+      "patch_idx": 3,
+      "strip_id": 0,
       "coords": [
-        28352,
-        0
+        96,
+        32
       ],
       "true_label": 0,
       "base_image": "data/gradcam/base/tn_1.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 2.324567049072357e-06,
+        "score": 0.0043487548828125,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/tn_1.webp"
@@ -598,25 +598,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5218268632888794,
+        "score": 0.52099609375,
         "gradcam_image": "data/gradcam/untrained/tn_1.webp"
       }
     },
     {
       "slot": "tn_2",
       "category": "True Negative #2",
-      "patch_idx": 262,
-      "strip_id": 14,
+      "patch_idx": 2,
+      "strip_id": 0,
       "coords": [
-        28640,
-        0
+        64,
+        32
       ],
       "true_label": 0,
       "base_image": "data/gradcam/base/tn_2.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 7.104117685230449e-06,
+        "score": 0.00579833984375,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/tn_2.webp"
@@ -624,17 +624,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5234262347221375,
+        "score": 0.51904296875,
         "gradcam_image": "data/gradcam/untrained/tn_2.webp"
       }
     },
     {
       "slot": "tn_3",
       "category": "True Negative #3",
-      "patch_idx": 226,
-      "strip_id": 14,
+      "patch_idx": 40,
+      "strip_id": 0,
       "coords": [
-        28064,
+        1280,
         0
       ],
       "true_label": 0,
@@ -642,7 +642,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 7.675711458432488e-06,
+        "score": 0.006389617919921875,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/tn_3.webp"
@@ -650,17 +650,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5228171944618225,
+        "score": 0.521484375,
         "gradcam_image": "data/gradcam/untrained/tn_3.webp"
       }
     },
     {
       "slot": "tn_4",
       "category": "True Negative #4",
-      "patch_idx": 260,
-      "strip_id": 14,
+      "patch_idx": 48,
+      "strip_id": 0,
       "coords": [
-        28608,
+        1408,
         0
       ],
       "true_label": 0,
@@ -668,7 +668,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 8.63093100633705e-06,
+        "score": 0.006931304931640625,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/tn_4.webp"
@@ -676,17 +676,17 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.52345210313797,
+        "score": 0.5205078125,
         "gradcam_image": "data/gradcam/untrained/tn_4.webp"
       }
     },
     {
       "slot": "tn_5",
       "category": "True Negative #5",
-      "patch_idx": 242,
-      "strip_id": 14,
+      "patch_idx": 42,
+      "strip_id": 0,
       "coords": [
-        28320,
+        1312,
         0
       ],
       "true_label": 0,
@@ -694,7 +694,7 @@
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 1.094066919904435e-05,
+        "score": 0.0070648193359375,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/tn_5.webp"
@@ -702,25 +702,25 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5210892558097839,
+        "score": 0.52197265625,
         "gradcam_image": "data/gradcam/untrained/tn_5.webp"
       }
     },
     {
       "slot": "tn_6",
       "category": "True Negative #6",
-      "patch_idx": 246,
-      "strip_id": 14,
+      "patch_idx": 31,
+      "strip_id": 0,
       "coords": [
-        28384,
-        0
+        992,
+        32
       ],
       "true_label": 0,
       "base_image": "data/gradcam/base/tn_6.webp",
       "trained_model": {
         "name": "CustomCNN (seed 2024 trained)",
         "weights": "models_real/CustomCNN_seed2024.pth",
-        "score": 1.4808596461080015e-05,
+        "score": 0.00806427001953125,
         "threshold": 0.45,
         "prediction": 0,
         "gradcam_image": "data/gradcam/trained/tn_6.webp"
@@ -728,7 +728,7 @@
       "untrained_model": {
         "name": "CustomCNN (seed 2024 random initialization)",
         "weights": "randomly initialized (torch.manual_seed(2024))",
-        "score": 0.5223044157028198,
+        "score": 0.52294921875,
         "gradcam_image": "data/gradcam/untrained/tn_6.webp"
       }
     }

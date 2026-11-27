@@ -383,6 +383,7 @@ def evaluate_model(model, dataloader, device, threshold: float = 0.5):
     """
     Evaluates a trained PyTorch model on a DataLoader.
     """
+    device = torch.device(device) if isinstance(device, str) else device
     model.eval()
     all_probs = []
     all_labels = []

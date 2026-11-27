@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Overview' },
   { href: '/pipeline/', label: 'How it works' },
   { href: '/results/', label: 'Results' },
+  { href: '/segmentation/', label: 'Segmentation & Uncertainty' },
   { href: '/patches/', label: 'Explore' },
   { href: '/failure-cases/', label: 'What went wrong' },
 ];
@@ -56,7 +57,7 @@ export function Navbar() {
           {/* Provenance Tag */}
           <div className="hidden lg:flex items-center">
             <span className="font-mono text-[10px] text-neutral-400 border border-neutral-800 px-2 py-1 rounded bg-neutral-900/50">
-              CH-2 DFSAR L1A · LINES 100,000–140,000
+              CH-2 DFSAR L1A · LINES 90,624–319,812
             </span>
           </div>
 
