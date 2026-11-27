@@ -1,0 +1,42 @@
+[
+  {
+    "config": "Base (0%)",
+    "nonzero_params": 1084681,
+    "patch_roc_auc": 0.8291243264874444,
+    "pixel_pr_auc": 0.00929220094243336,
+    "lat_b1_ms": 2.2436999997808016,
+    "lat_b64_ms": 10.859500000151456
+  },
+  {
+    "config": "Structured Channel 30% (base_ch=17)",
+    "nonzero_params": 544834,
+    "patch_roc_auc": 0.8098997413140104,
+    "pixel_pr_auc": 0.006534261117597412,
+    "lat_b1_ms": 2.220149999629939,
+    "lat_b64_ms": 11.440700000093784
+  },
+  {
+    "config": "Structured Channel 50% (base_ch=12)",
+    "nonzero_params": 271909,
+    "patch_roc_auc": 0.8473672269147765,
+    "pixel_pr_auc": 0.010043310199108025,
+    "lat_b1_ms": 2.0583500008797273,
+    "lat_b64_ms": 5.358899999919231
+  },
+  {
+    "config": "Unstructured L1 50% (param reduction)",
+    "nonzero_params": 543481,
+    "patch_roc_auc": 0.8372395275050379,
+    "pixel_pr_auc": 0.007412964531665509,
+    "lat_b1_ms": 2.2202499994818936,
+    "lat_b64_ms": 10.933349999504571
+  },
+  {
+    "config": "Unstructured L1 90% (param reduction)",
+    "nonzero_params": 110521,
+    "patch_roc_auc": 0.8272601080478498,
+    "pixel_pr_auc": 0.005846488859163095,
+    "lat_b1_ms": 2.2079000000303495,
+    "lat_b64_ms": 10.939099999632163
+  }
+]
