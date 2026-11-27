@@ -356,13 +356,26 @@ def block_bootstrap_evaluation(
     return res
 
 
-def get_strip_ids_from_coords(coords: np.ndarray, grid_size: tuple = (1, 20)) -> np.ndarray:
+def get_strip_ids_from_coords(coords: np.ndarray, grid_size: tuple = (1, 20), max_row: float = None) -> np.ndarray:
     """
     Derive spatial along-track strip index from patch coordinates (r, c).
-    Uses full real DFSAR swath length (40,000 lines, max r = 39,936).
+    Reads active_rows, patch_size, stride from config.yaml when max_row is None.
     """
     coords = np.asarray(coords)
-    block_width = (39936.0 + 1e-5) / grid_size[1]
+    if max_row is None:
+        cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.yaml")
+        if os.path.isfile(cfg_path):
+            import yaml
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                rcfg = yaml.safe_load(f).get("real_dfsar", {})
+            ar = rcfg.get("active_rows", [90624, 319812])
+            P = int(rcfg.get("patch_size", 64))
+            stride = int(rcfg.get("stride", 32))
+            num_rows = int(ar[1]) - int(ar[0])
+            max_row = float(((num_rows - P) // stride) * stride)
+        else:
+            max_row = 229120.0
+    block_width = (max_row + 1e-5) / grid_size[1]
     return np.minimum((coords[:, 0] / block_width).astype(int), grid_size[1] - 1)
 
 

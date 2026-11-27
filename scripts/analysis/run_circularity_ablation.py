@@ -341,8 +341,18 @@ def main():
     # Part 2: Label-Threshold Sensitivity
     # ──────────────────────────────────────────────────────────────────────────
     print("\n--- Part 2: Running Label-Threshold Sensitivity Sweep ---")
-    print(f"Loading raw SLI complex data from {RAW_DIR} (lines 100k to 140k)...")
-    channels = load_complex_dfsar_sli(RAW_DIR, start_row=100000, num_rows=40000)
+    import yaml
+    with open("config.yaml", "r", encoding="utf-8") as cf:
+        rcfg = yaml.safe_load(cf).get("real_dfsar", {})
+    ar = rcfg.get("active_rows", [90624, 319812])
+    s_row, n_rows = int(ar[0]), int(ar[1]) - int(ar[0])
+    print(f"Loading raw SLI complex data from {RAW_DIR} (lines {s_row} to {s_row+n_rows})...")
+    channels = load_complex_dfsar_sli(RAW_DIR, start_row=s_row, num_rows=n_rows)
+    valid_mask = (
+        np.isfinite(channels["hh"]) & np.isfinite(channels["hv"])
+        & np.isfinite(channels["vh"]) & np.isfinite(channels["vv"])
+        & (np.abs(channels["hh"]) > 0) & (np.abs(channels["vv"]) > 0)
+    )
     cpr, dop = compute_cpr_dop_complex(
         channels["hh"], channels["hv"], channels["vh"], channels["vv"], W=7
     )
@@ -361,7 +371,7 @@ def main():
 
     for c_th in cpr_thresholds:
         for d_th in dop_thresholds:
-            pixel_mask = (cpr > c_th) & (dop < d_th)
+            pixel_mask = (cpr > c_th) & (dop < d_th) & valid_mask
             scene_pos_px = int(pixel_mask.sum())
             test_pos_count = 0
             test_labels_sweep = np.zeros(total_test, dtype=int)

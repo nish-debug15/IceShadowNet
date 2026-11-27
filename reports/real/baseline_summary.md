@@ -1,25 +1,25 @@
 # Classical Baselines on Real Chandrayaan-2 DFSAR L1A (Overhaul Evaluation)
 
 > **DATA SOURCE:** REAL (Chandrayaan-2 DFSAR L1A quad-pol SLI, lines 100,000–140,000)
-> **Spatial Test Split:** 338 patches (101 positive, 237 negative, Prevalence=29.9%)
+> **Spatial Test Split:** 2018 patches (332 positive, 1686 negative, Prevalence=16.5%)
 > **Evaluation Protocol:** PR-AUC is headline metric; MCC and Balanced Accuracy replace unweighted accuracy; thresholds tuned strictly on Val; block-bootstrap 95% CIs across strips; ECE calibration computed.
 
 ## 1. Primary Test Evaluation Table (Full Spatial Test Set: N=338)
 
 | Model | Tuned Th | PR-AUC (Primary) (95% CI) | ROC-AUC (95% CI) | MCC (95% CI) | Balanced Acc (95% CI) | F1 (95% CI) | Precision | Recall | ECE | Support |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Trivial Baseline (All Negative) | 0.50 | **0.2988**<br>`[0.0439, 0.4732]` | **0.5000**<br>`[0.5000, 0.5000]` | **0.0000**<br>`[0.0000, 0.0000]` | 0.5000<br>`[0.5000, 0.5000]` | 0.0000<br>`[0.0000, 0.0000]` | 0.0000 | 0.0000 | 0.2988 | TP:0 FP:0 FN:101 TN:237 (Pos:101 Neg:237) |
-| Rule Baseline (Circularity Yardstick: CPR>1 & DOP<0.13) | 0.00 | **1.0000**<br>`[1.0000, 1.0000]` | **1.0000**<br>`[1.0000, 1.0000]` | **1.0000**<br>`[1.0000, 1.0000]` | 1.0000<br>`[1.0000, 1.0000]` | 1.0000<br>`[1.0000, 1.0000]` | 1.0000 | 1.0000 | 0.2981 | TP:101 FP:0 FN:0 TN:237 (Pos:101 Neg:237) |
-| BASELINE: Decision Tree (max_depth=3, balanced) | 0.42 | **0.4280**<br>`[0.2351, 0.4895]` | **0.6922**<br>`[0.4165, 0.7407]` | **0.2430**<br>`[-0.1066, 0.2892]` | 0.6241<br>`[0.3706, 0.6499]` | 0.5212<br>`[0.0357, 0.6623]` | 0.3755 | 0.8515 | 0.1741 | TP:86 FP:143 FN:15 TN:94 (Pos:101 Neg:237) |
-| BASELINE: Logistic Regression (balanced) | 0.50 | **0.4953**<br>`[0.2374, 0.5401]` | **0.7314**<br>`[0.4477, 0.8153]` | **0.2646**<br>`[-0.0369, 0.3801]` | 0.6424<br>`[0.4827, 0.7038]` | 0.5145<br>`[0.0000, 0.5426]` | 0.4429 | 0.6139 | 0.1413 | TP:62 FP:78 FN:39 TN:159 (Pos:101 Neg:237) |
+| Trivial Baseline (All Negative) | 0.50 | **0.1645**<br>`[0.1029, 0.2006]` | **0.5000**<br>`[0.5000, 0.5000]` | **0.0000**<br>`[0.0000, 0.0000]` | 0.5000<br>`[0.5000, 0.5000]` | 0.0000<br>`[0.0000, 0.0000]` | 0.0000 | 0.0000 | 0.1645 | TP:0 FP:0 FN:332 TN:1686 (Pos:332 Neg:1686) |
+| Rule Baseline (Circularity Yardstick: CPR>1 & DOP<0.13) | 0.00 | **1.0000**<br>`[1.0000, 1.0000]` | **1.0000**<br>`[1.0000, 1.0000]` | **1.0000**<br>`[1.0000, 1.0000]` | 1.0000<br>`[1.0000, 1.0000]` | 1.0000<br>`[1.0000, 1.0000]` | 1.0000 | 1.0000 | 0.1640 | TP:332 FP:0 FN:0 TN:1686 (Pos:332 Neg:1686) |
+| BASELINE: Decision Tree (max_depth=3, balanced) | 0.31 | **0.1822**<br>`[0.1088, 0.2549]` | **0.5072**<br>`[0.4102, 0.6441]` | **-0.0453**<br>`[-0.2214, 0.1703]` | 0.4760<br>`[0.3736, 0.5792]` | 0.2598<br>`[0.1889, 0.3590]` | 0.1563 | 0.7681 | 0.3287 | TP:255 FP:1376 FN:77 TN:310 (Pos:332 Neg:1686) |
+| BASELINE: Logistic Regression (balanced) | 0.55 | **0.5310**<br>`[0.1672, 0.7877]` | **0.8040**<br>`[0.5587, 0.9337]` | **0.2967**<br>`[0.0281, 0.5619]` | 0.6999<br>`[0.5230, 0.8451]` | 0.4153<br>`[0.1867, 0.6318]` | 0.2785 | 0.8163 | 0.3554 | TP:271 FP:702 FN:61 TN:984 (Pos:332 Neg:1686) |
 
 ---
 
 ## 2. Ambiguity-Removed Evaluation (Clean Test Set: N=205)
 
-> Excludes 133 test patches containing between 1 and 4 positive pixels. Leaves 205 clean patches (101 pos, 104 neg).
+> Excludes 806 test patches containing between 1 and 4 positive pixels. Leaves 1212 clean patches (332 pos, 880 neg).
 
 | Model | Tuned Th | PR-AUC (Primary) (95% CI) | ROC-AUC (95% CI) | MCC (95% CI) | Balanced Acc (95% CI) | F1 (95% CI) | Precision | Recall | ECE | Support |
 |---|---|---|---|---|---|---|---|---|---|---|
-| BASELINE: Decision Tree (max_depth=3, balanced) | 0.42 | **0.7178**<br>`[0.2533, 0.7953]` | **0.7675**<br>`[0.3886, 0.7875]` | **0.3032**<br>`[-0.1639, 0.3738]` | 0.6373<br>`[0.3357, 0.6551]` | 0.6964<br>`[0.0465, 0.8718]` | 0.5890 | 0.8515 | 0.1090 | TP:86 FP:60 FN:15 TN:44 (Pos:101 Neg:104) |
-| BASELINE: Logistic Regression (balanced) | 0.50 | **0.8164**<br>`[0.2587, 0.8721]` | **0.8512**<br>`[0.4657, 0.8760]` | **0.4409**<br>`[0.0000, 0.5506]` | 0.7156<br>`[0.5000, 0.7457]` | 0.6813<br>`[0.0000, 0.7143]` | 0.7654 | 0.6139 | 0.1919 | TP:62 FP:19 FN:39 TN:85 (Pos:101 Neg:104) |
+| BASELINE: Decision Tree (max_depth=3, balanced) | 0.31 | **0.3048**<br>`[0.2282, 0.4810]` | **0.5081**<br>`[0.3967, 0.7170]` | **-0.0123**<br>`[-0.2902, 0.3211]` | 0.4943<br>`[0.3519, 0.6426]` | 0.4006<br>`[0.2688, 0.5727]` | 0.2710 | 0.7681 | 0.2658 | TP:255 FP:686 FN:77 TN:194 (Pos:332 Neg:880) |
+| BASELINE: Logistic Regression (balanced) | 0.55 | **0.7379**<br>`[0.3125, 0.9209]` | **0.8672**<br>`[0.5830, 0.9621]` | **0.4932**<br>`[0.0749, 0.7312]` | 0.7729<br>`[0.5449, 0.9009]` | 0.6445<br>`[0.3559, 0.7987]` | 0.5324 | 0.8163 | 0.2124 | TP:271 FP:238 FN:61 TN:642 (Pos:332 Neg:880) |
