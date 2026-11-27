@@ -1001,6 +1001,7 @@ def export_segmentation_uncertainty():
         "unet_reliability.png",
         "unet_ensemble_reliability.png",
         "unet_selective_prediction.png",
+        "selective_redone.png",
     ]:
         src = os.path.join(fig_src_dir, png)
         if os.path.isfile(src):
@@ -1016,6 +1017,12 @@ def export_segmentation_uncertainty():
         "efficiency": load_j("efficiency_report.json"),
         "block1": load_j("block1_benchmark_report.json"),
         "five_fold_cv": load_j("five_fold_cv.json"),
+        "block6_stats": load_j("block6_stats.json"),
+        "context_baselines": load_j("context_pixel_baselines.json"),
+        "selective_redone": load_j("selective_redone.json"),
+        "phase_oracle": load_j("phase_oracle_diagnostic.json"),
+        "pruning_unified": load_j("pruning_unified.json"),
+        "georef_10fold": load_j("georef_10fold.json"),
     }
     out_file = os.path.join(OUTPUT_BASE, "segmentation_uncertainty.json")
     with open(out_file, "w", encoding="utf-8") as f:

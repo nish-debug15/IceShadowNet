@@ -26,7 +26,7 @@ jobs:
           mkdir -p docs/figures
           cp reports/real/figures/georef_sri_overlay.png \
              reports/real/figures/label_efficiency_curve.png \
-             reports/real/figures/selective_prediction_hardened.png \
+             reports/real/figures/selective_redone.png \
              reports/real/figures/unet_overlays.png \
              reports/real/figures/unet_reliability.png \
              docs/figures/
