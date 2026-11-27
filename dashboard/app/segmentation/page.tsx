@@ -94,9 +94,10 @@ export default function SegmentationPage() {
           Pixel-Level Segmentation & Uncertainty Quantification
         </h1>
         <p className="mt-2 text-sm text-neutral-400 max-w-3xl">
-          Lightweight MC-Dropout <code className="text-cyan-300">IceUNet</code> trained on raw [HH, HV, VV]
-          log-intensities to predict pixel-level polarimetric anomalies (CPR &gt; 1.0 &amp; DOP &lt; 0.13),
-          resolving the 1–4 px patch-threshold ambiguity band. Precomputed static outputs (no live inference).
+          Lightweight MC-Dropout <code className="text-cyan-300">IceUNet</code> trained on intensity-only [HH, HV, VV]
+          log-intensities to localize pixel-level polarimetric anomalies (CPR &gt; 1.0 &amp; DOP &lt; 0.13).
+          Pixel PR-AUC reaches 0.0093–0.0110 (17.6×–20.9× over the 0.0527% baseline), while Dice (~0.03)
+          reflects missing complex phase information. Precomputed static outputs (no live inference).
         </p>
       </div>
 
@@ -111,7 +112,7 @@ export default function SegmentationPage() {
               <tr>
                 <th className="px-4 py-3">Model</th>
                 <th className="px-4 py-3">Pixel PR-AUC</th>
-                <th className="px-4 py-3">Pixel ROC-AUC</th>
+                <th className="px-4 py-3">Lift vs. 0.0527%</th>
                 <th className="px-4 py-3">Dice (Val Th)</th>
                 <th className="px-4 py-3">IoU (Val Th)</th>
               </tr>
@@ -120,21 +121,21 @@ export default function SegmentationPage() {
               <tr>
                 <td className="px-4 py-2.5">Baseline: HV/HH Ratio</td>
                 <td className="px-4 py-2.5">{hvhh?.pr_auc?.toFixed(4)}</td>
-                <td className="px-4 py-2.5">{hvhh?.roc_auc?.toFixed(4)}</td>
+                <td className="px-4 py-2.5">{(hvhh?.pr_auc / 0.000527).toFixed(1)}×</td>
                 <td className="px-4 py-2.5">{hvhh?.dice?.toFixed(4)}</td>
                 <td className="px-4 py-2.5">{hvhh?.iou?.toFixed(4)}</td>
               </tr>
               <tr>
                 <td className="px-4 py-2.5">Baseline: Pixel Logistic Regression</td>
                 <td className="px-4 py-2.5">{pxlr?.pr_auc?.toFixed(4)}</td>
-                <td className="px-4 py-2.5">{pxlr?.roc_auc?.toFixed(4)}</td>
+                <td className="px-4 py-2.5">{(pxlr?.pr_auc / 0.000527).toFixed(1)}×</td>
                 <td className="px-4 py-2.5">{pxlr?.dice?.toFixed(4)}</td>
                 <td className="px-4 py-2.5">{pxlr?.iou?.toFixed(4)}</td>
               </tr>
               <tr className="bg-cyan-950/20">
                 <td className="px-4 py-2.5 font-semibold text-cyan-300">IceUNet (3-seed mean)</td>
                 <td className="px-4 py-2.5 text-cyan-300">{meanOf((r) => r.pooled_val_th.pr_auc).toFixed(4)}</td>
-                <td className="px-4 py-2.5 text-cyan-300">{meanOf((r) => r.pooled_val_th.roc_auc).toFixed(4)}</td>
+                <td className="px-4 py-2.5 text-cyan-300">{(meanOf((r) => r.pooled_val_th.pr_auc) / 0.000527).toFixed(1)}×</td>
                 <td className="px-4 py-2.5 text-cyan-300">{meanOf((r) => r.pooled_val_th.dice).toFixed(4)}</td>
                 <td className="px-4 py-2.5 text-cyan-300">{meanOf((r) => r.pooled_val_th.iou).toFixed(4)}</td>
               </tr>
@@ -142,7 +143,7 @@ export default function SegmentationPage() {
                 <tr>
                   <td className="px-4 py-2.5">IceUNet MC Dropout (T=20)</td>
                   <td className="px-4 py-2.5">{mc.pr_auc?.toFixed(4)}</td>
-                  <td className="px-4 py-2.5">{mc.roc_auc?.toFixed(4)}</td>
+                  <td className="px-4 py-2.5">{(mc.pr_auc / 0.000527).toFixed(1)}×</td>
                   <td className="px-4 py-2.5">{mc.dice?.toFixed(4)}</td>
                   <td className="px-4 py-2.5">{mc.iou?.toFixed(4)}</td>
                 </tr>
@@ -151,7 +152,7 @@ export default function SegmentationPage() {
                 <tr className="bg-emerald-950/20">
                   <td className="px-4 py-2.5 font-semibold text-emerald-300">IceUNet 3-Seed Ensemble</td>
                   <td className="px-4 py-2.5 text-emerald-300">{ens.pr_auc?.toFixed(4)}</td>
-                  <td className="px-4 py-2.5 text-emerald-300">{ens.roc_auc?.toFixed(4)}</td>
+                  <td className="px-4 py-2.5 text-emerald-300">{(ens.pr_auc / 0.000527).toFixed(1)}×</td>
                   <td className="px-4 py-2.5 text-emerald-300">{ens.dice?.toFixed(4)}</td>
                   <td className="px-4 py-2.5 text-emerald-300">{ens.iou?.toFixed(4)}</td>
                 </tr>
@@ -182,9 +183,8 @@ export default function SegmentationPage() {
             3a. Boundary Uncertainty Test (Measured, Not Assumed)
           </h3>
           <p className="text-xs text-neutral-400">
-            Predictive entropy peaks inside GT positive regions (~0.51) and boundary rings (~0.47) vs. far
-            background (~0.14), while 3-seed ensemble variance is slightly higher on 1–2 px boundary rings
-            (0.00953 vs 0.00947).
+            Predictive entropy tracks p near 0.5: GT Interior has the highest mean p (0.2656) and highest
+            MC entropy (0.5135), followed by 1–2 px boundary rings (0.4664) and far background (0.1428).
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-xs">
