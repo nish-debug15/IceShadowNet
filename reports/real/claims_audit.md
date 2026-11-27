@@ -1,14 +1,21 @@
-# Block 5 Item 1: Claims Audit
+# Block 6 Item 8: Claims Audit (Verified Against `reports/real/`)
 
-Every numeric and qualitative claim across `README.md`, `reports/real/research_report.md`, `reports/real/viva_qa.md`, and `dashboard/app/segmentation/page.tsx` was diffed against the ground-truth artifacts in `reports/real/`.
+| Claim / Invariant | Audited Files | Verified (Y/N) |
+| :--- | :--- | :---: |
+| 5-fold CV CustomCNN 0.8124 vs LR 0.8118 | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| Paired sub-block CI CustomCNN-LR [-0.0109, +0.0546] | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| ResNet_pretrained underperforms, not separable under strip CV | README.md, research_report.md | **Y** |
+| SSL 10% 0.7892 does not beat LR 0.8036 / CustomCNN 0.8080 | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| Context-matched HistGBDT 7x7+15x15 PR-AUC 0.0077 (14.6x) | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| IceUNet 3-seed PR-AUC 0.0093 (17.6x) / Ensemble 0.0110 (20.9x) | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| Phase Oracle 4-ch PR-AUC 0.0133 (25.2x), Dice 0.0348 (circular) | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| Selective prediction negative verdict (not usable for rejection) | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| Pruning 50% structured B=64 5.359 ms / 30% no speedup 11.441 ms | README.md, research_report.md, docs/index.html | **Y** |
+| 10-fold GCP CV mean 367.98 m / median 307.38 m / max 2,377.70 m | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| 92.79% SRI overlap defined | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| Split search prevalence-only disclosure (no model feedback) | README.md, research_report.md, docs/index.html | **Y** |
+| Anisotropic 0.505 m x 9.593 m, single scene, proxy labels | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| Forbidden overstatement check: no 'resolves ambiguity' / 'clears ambiguity' | README.md, research_report.md, viva_qa.md, docs/index.html | **Y** |
+| Dashboard segmentation_uncertainty.json matches Block 6 JSONs | segmentation_uncertainty.json | **Y** |
 
-| Claim Audited | Source File(s) | Ground-Truth Report File | Verified? | Failure / Overstatement Fixed |
-| :--- | :--- | :--- | :---: | :--- |
-| "MC-Dropout U-Net Resolves Threshold Ambiguity" / "U-Net solves patch-threshold ambiguity" | `README.md`, `research_report.md`, `dashboard/app/segmentation/page.tsx` | `unet_segmentation_report.md`, `block1_benchmark_report.md` | **N (Overstated)** | Rewritten: U-Net provides **pixel-level localization** without requiring a `>=5 px` patch cutoff, but at patch level `IceUNet (mean_prob: 0.8335)` **does not beat** `CustomCNN (0.8379 ± 0.0007)` and `Optuna IceUNet (0.8497)` is a single-seed run. |
-| "In-Domain SimCLR SSL Solves the Low-Label Regime" | `README.md`, `research_report.md` | `label_efficiency_fairness.md` | **N (Incomplete)** | Rewritten: `ResNet_SSL` beats `ResNet_scratch` and `ResNet_pretrained` at 10–50% labels, **but does NOT beat `LogisticRegression` (`0.8036` vs `0.7892` at 10%) or `CustomCNN` (`0.8080`)**. |
-| Headline pixel results led with Pixel ROC-AUC (`0.9380` / `0.9518`) | `README.md`, `research_report.md`, `dashboard/app/segmentation/page.tsx` | `unet_segmentation_report.md`, `pixel_metrics_hardened.md` | **N (Misleading)** | Dropped Pixel ROC-AUC from headlines. Headlines now lead with **Pixel PR-AUC (`0.0093`, `17.6×` over `0.0527%` baseline; `0.0110` ensemble, `20.9×` lift)** and **Dice (`~0.03`: `0.0266` single-seed, `0.0334` ensemble, `0.0539` conditional on positive patches)**, explicitly explaining the **phase-information ceiling** (labels use complex phase for DOP/CPR; inputs are intensity-only). |
-| "DL ties LR on patch task" | `README.md`, `research_report.md`, `viva_qa.md` | `five_fold_cv.md`, `block1_benchmark_report.md` | **Y** | Retained and emphasized: 5-fold CV `CustomCNN 0.8124 ± 0.0408` vs `LogisticRegression 0.8118 ± 0.0460`. |
-| "Calibrated uncertainty (`ECE = 0.043–0.048`)" without Brier/BSS | `research_report.md` | `uncertainty_hardened.md` | **N (Incomplete)** | Added Brier score (`0.0074` / `0.0082`), negative Brier Skill Score (`-13.07` / `-14.64` vs prevalence due to `pos_weight=50`), positive-class calibration (`0.2656` / `0.2886` mean $p$), and comparison against `|p - 0.5|` baseline. |
-| "Uncertainty concentrates at boundaries" | `viva_qa.md`, `dashboard` | `uncertainty_hardened.md` | **N (Refuted for Entropy)** | Rewritten to match measurement: **MC entropy tracks $p$ near $0.5$** (`GT Interior` highest at `0.51350`, `1–2 px` ring `0.46635`, background `0.14280`). |
-| Unstructured pruning (`90%`) presented as efficiency without hardware caveat | `README.md` | `efficiency_report.md`, `structured_pruning.md` | **N (Incomplete)** | Explicitly labeled L1 unstructured pruning as **parameter reduction** (zero speedup at `~11.2 ms`), and added structured channel pruning (`30%` `15.54 ms` = no speedup; `50%` `9.81 ms` = `1.32×` speedup). |
-| TPS Georeferencing `0.000 m` in-fit / `281.7 m` hold-out | `research_report.md`, `viva_qa.md` | `georeferencing_audit.md`, `maps/README.md` | **Y** | Verified and supplemented with SRI overlay check (`92.79%` footprint overlap, `~282 m` / `~300 m` hold-out accuracy). |
+**Overall Audit Status:** `PASSED (15/15)`
