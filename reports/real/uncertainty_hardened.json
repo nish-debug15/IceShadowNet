@@ -1,0 +1,175 @@
+{
+  "val_th": 0.44999999999999996,
+  "calibration_brier": {
+    "mc_dropout": {
+      "brier": 0.007408230099827051,
+      "brier_ref_prevalence": 0.0005263550372398702,
+      "brier_skill_score": -13.074587637034387,
+      "mean_prob_on_positives": 0.2655574679374695,
+      "mean_prob_on_negatives": 0.043417442589998245,
+      "pos_calibration_gap": 0.7344425320625305
+    },
+    "deep_ensemble": {
+      "brier": 0.008230159990489483,
+      "brier_ref_prevalence": 0.0005263550372398702,
+      "brier_skill_score": -14.636137983303538,
+      "mean_prob_on_positives": 0.2886415123939514,
+      "mean_prob_on_negatives": 0.04834703728556633,
+      "pos_calibration_gap": 0.7113584876060486
+    }
+  },
+  "selective_prediction": {
+    "mc_entropy": [
+      {
+        "coverage": 1.0,
+        "pixel_dice": 0.030248260101797028,
+        "patch_roc_auc": 0.8297406708685275,
+        "retained_pos_px": 4353,
+        "retained_pos_patches": 332
+      },
+      {
+        "coverage": 0.9,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.7889437268834518,
+        "retained_pos_px": 865,
+        "retained_pos_patches": 214
+      },
+      {
+        "coverage": 0.8,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.7464926769083818,
+        "retained_pos_px": 272,
+        "retained_pos_patches": 136
+      },
+      {
+        "coverage": 0.7,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.7445146276595744,
+        "retained_pos_px": 107,
+        "retained_pos_patches": 96
+      },
+      {
+        "coverage": 0.6,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.7542381860563679,
+        "retained_pos_px": 55,
+        "retained_pos_patches": 66
+      },
+      {
+        "coverage": 0.5,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.7430856553147575,
+        "retained_pos_px": 37,
+        "retained_pos_patches": 40
+      }
+    ],
+    "ensemble_variance": [
+      {
+        "coverage": 1.0,
+        "pixel_dice": 0.03299934343866861,
+        "patch_roc_auc": 0.845551244122397,
+        "retained_pos_px": 4353,
+        "retained_pos_patches": 332
+      },
+      {
+        "coverage": 0.9,
+        "pixel_dice": 0.03522457188128466,
+        "patch_roc_auc": 0.7901310027733178,
+        "retained_pos_px": 2141,
+        "retained_pos_patches": 204
+      },
+      {
+        "coverage": 0.8,
+        "pixel_dice": 0.03642234420406845,
+        "patch_roc_auc": 0.7765947519689448,
+        "retained_pos_px": 1086,
+        "retained_pos_patches": 146
+      },
+      {
+        "coverage": 0.7,
+        "pixel_dice": 0.034070094028574915,
+        "patch_roc_auc": 0.7876963209255806,
+        "retained_pos_px": 460,
+        "retained_pos_patches": 114
+      },
+      {
+        "coverage": 0.6,
+        "pixel_dice": 0.03678832116788321,
+        "patch_roc_auc": 0.7787175356375707,
+        "retained_pos_px": 143,
+        "retained_pos_patches": 72
+      },
+      {
+        "coverage": 0.5,
+        "pixel_dice": 0.03591331269349845,
+        "patch_roc_auc": 0.7788052721088436,
+        "retained_pos_px": 62,
+        "retained_pos_patches": 49
+      }
+    ],
+    "p_minus_05_baseline": [
+      {
+        "coverage": 1.0,
+        "pixel_dice": 0.030248260101797028,
+        "patch_roc_auc": 0.8297406708685275,
+        "retained_pos_px": 4353,
+        "retained_pos_patches": 332
+      },
+      {
+        "coverage": 0.9,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.796813055365687,
+        "retained_pos_px": 865,
+        "retained_pos_patches": 220
+      },
+      {
+        "coverage": 0.8,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.7572185870491545,
+        "retained_pos_px": 272,
+        "retained_pos_patches": 141
+      },
+      {
+        "coverage": 0.7,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.7349816984192978,
+        "retained_pos_px": 107,
+        "retained_pos_patches": 93
+      },
+      {
+        "coverage": 0.6,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.7528740199194746,
+        "retained_pos_px": 55,
+        "retained_pos_patches": 66
+      },
+      {
+        "coverage": 0.5,
+        "pixel_dice": 0.0,
+        "patch_roc_auc": 0.7054561454972132,
+        "retained_pos_px": 37,
+        "retained_pos_patches": 35
+      }
+    ]
+  },
+  "boundary_breakdown": {
+    "GT Interior": {
+      "n_px": 4353,
+      "mc_mean_p": 0.2655574679374695,
+      "mc_entropy": 0.5135021805763245,
+      "ens_var": 0.009467081166803837
+    },
+    "GT Boundary Ring (1-2px)": {
+      "n_px": 35376,
+      "mc_mean_p": 0.22875674068927765,
+      "mc_entropy": 0.4663512110710144,
+      "ens_var": 0.009525787085294724
+    },
+    "Far Background": {
+      "n_px": 8225999,
+      "mc_mean_p": 0.04262039065361023,
+      "mc_entropy": 0.14280200004577637,
+      "ens_var": 0.001904625678434968
+    }
+  }
+}
