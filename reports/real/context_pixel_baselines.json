@@ -1,0 +1,53 @@
+{
+  "pixel_prevalence": 0.0005266323789023786,
+  "context_baselines": [
+    {
+      "model": "Context Pixel LogReg (7x7)",
+      "windows": "7x7",
+      "n_features": 8,
+      "val_th": 0.95,
+      "best_test_th": 0.95,
+      "pr_auc": 0.005816270855130165,
+      "lift_over_prevalence": 11.044271275633665,
+      "dice_val_th": 0.017697371014150014,
+      "iou_val_th": 0.008927683773089695,
+      "dice_best_th": 0.017697371014150014
+    },
+    {
+      "model": "Context Pixel HistGBDT (7x7)",
+      "windows": "7x7",
+      "n_features": 8,
+      "val_th": 0.95,
+      "best_test_th": 0.95,
+      "pr_auc": 0.00721839559589595,
+      "lift_over_prevalence": 13.706706775114595,
+      "dice_val_th": 0.021473466597755956,
+      "iou_val_th": 0.010853261877075013,
+      "dice_best_th": 0.021473466597755956
+    },
+    {
+      "model": "Context Pixel LogReg (7x7+15x15)",
+      "windows": "7x7+15x15",
+      "n_features": 16,
+      "val_th": 0.95,
+      "best_test_th": 0.95,
+      "pr_auc": 0.006667336363278394,
+      "lift_over_prevalence": 12.66032365342715,
+      "dice_val_th": 0.018927147744750305,
+      "iou_val_th": 0.009553988750693179,
+      "dice_best_th": 0.018927147744750305
+    },
+    {
+      "model": "Context Pixel HistGBDT (7x7+15x15)",
+      "windows": "7x7+15x15",
+      "n_features": 16,
+      "val_th": 0.95,
+      "best_test_th": 0.95,
+      "pr_auc": 0.007670400705822993,
+      "lift_over_prevalence": 14.56500020338637,
+      "dice_val_th": 0.02285461264667314,
+      "iou_val_th": 0.011559399117971334,
+      "dice_best_th": 0.02285461264667314
+    }
+  ]
+}
