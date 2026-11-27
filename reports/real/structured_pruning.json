@@ -1,0 +1,32 @@
+[
+  {
+    "config": "0% (Base base_ch=24)",
+    "base_ch": 24,
+    "params": 1084681,
+    "param_reduction_pct": 0.0,
+    "px_pr_auc": 0.00929220094243336,
+    "dice": 0.029540275183769983,
+    "patch_mean_roc_auc": 0.8291243264874444,
+    "latency_ms_b64": 12.938985000012812
+  },
+  {
+    "config": "30% Channel-Pruned (base_ch=17)",
+    "base_ch": 17,
+    "params": 544834,
+    "param_reduction_pct": 49.770116744001236,
+    "px_pr_auc": 0.00812389504686111,
+    "dice": 0.03009510051763573,
+    "patch_mean_roc_auc": 0.8308867141162515,
+    "latency_ms_b64": 15.539516666649433
+  },
+  {
+    "config": "50% Channel-Pruned (base_ch=12)",
+    "base_ch": 12,
+    "params": 271909,
+    "param_reduction_pct": 74.93189241813954,
+    "px_pr_auc": 0.00987750583026887,
+    "dice": 0.020053132230696716,
+    "patch_mean_roc_auc": 0.8455932270005289,
+    "latency_ms_b64": 9.808483333320813
+  }
+]
