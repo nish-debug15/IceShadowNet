@@ -1,8 +1,14 @@
-numpy
-scipy
-rasterio
-scikit-learn
-matplotlib
-opencv-python
-grad-cam
-pyyaml
+# Pinned IceShadowNet 2.0 environment (CUDA 12.6 / isn_gpu)
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch==2.12.0+cu126
+torchvision==0.27.0+cu126
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.9.1
+rasterio==1.4.4
+PyYAML==6.0.3
+matplotlib==3.11.2
+optuna==5.1.0
+grad-cam>=1.5.0
+Pillow>=10.0.0
+pytest>=8.0.0
