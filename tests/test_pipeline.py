@@ -211,3 +211,27 @@ def test_val_tuned_threshold_does_not_touch_test():
     assert th1 == th2
     assert f1_1 == f1_2
 
+
+@pytest.mark.skipif(
+    not os.path.isfile("data/processed_real/test.npz") or not os.path.isfile("models_real/IceUNet_seed42.pth"),
+    reason="Gitignored processed_real splits or IceUNet checkpoint not present in CI checkout",
+)
+def test_frozen_split_and_unet_cpu_smoke():
+    """Verify frozen split counts and IceUNet forward pass on CPU when local artifacts exist."""
+    import torch
+    from src.models.unet import IceUNet
+
+    d_te = np.load("data/processed_real/test.npz")
+    assert len(d_te["labels"]) == 2018
+    assert int(d_te["labels"].sum()) == 332
+    assert d_te["masks"].shape == (2018, 64, 64)
+
+    model = IceUNet(in_channels=3, base_ch=24, dropout_p=0.15).to("cpu")
+    model.load_state_dict(torch.load("models_real/IceUNet_seed42.pth", map_location="cpu"))
+    model.eval()
+    with torch.no_grad():
+        x = torch.from_numpy(d_te["images"][:2]).float()
+        out = model(x)
+    assert out.shape == (2, 1, 64, 64)
+    assert torch.isfinite(out).all()
+

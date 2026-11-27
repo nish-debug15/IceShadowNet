@@ -74,8 +74,8 @@ def parse_pds4_xml_metadata(xml_path: str) -> dict:
 
 def audit_sar_scene(
     scene_dir: str,
-    start_row: int = 100000,
-    num_rows: int = 40000,
+    start_row: int = 90624,
+    num_rows: int = 229188,
     patch_size: int = 64,
     stride: int = 32,
     cpr_thresh: float = 1.0,
@@ -238,22 +238,22 @@ def generate_split_plan(registered_scenes: list[dict], n_splits: int = 3) -> dic
             "plan_type": plan_type,
             "scene_id": scene["scene_id"],
             "grid_size": (1, 20),
-            "buffer_pixels": 64,
+            "buffer_pixels": 256,
             "assigned_splits": {
-                "train_strips": [0, 1, 2, 3, 5, 8, 9, 11, 13, 15, 16, 17, 18, 19],
-                "val_strips": [4, 7, 12],
-                "test_strips": [6, 10, 14],
+                "train_strips": [1, 3, 4, 5, 7, 9, 10, 11, 12, 13, 14, 16, 18, 19],
+                "val_strips": [2, 6, 17],
+                "test_strips": [0, 8, 15],
             },
             "post_buffer_counts": {
-                "train_patches": 1686,
-                "train_pos": 362,
-                "val_patches": 342,
-                "val_pos": 77,
-                "test_patches": 338,
-                "test_pos": 101,
+                "train_patches": 9828,
+                "train_pos": 1614,
+                "val_patches": 2040,
+                "val_pos": 335,
+                "test_patches": 2018,
+                "test_pos": 332,
             },
             "note": (
-                "SINGLE SCENE DETECTED: Falling back to blocked along-track strip CV with 64px "
+                "SINGLE SCENE DETECTED: Falling back to deterministic blocked along-track strip CV with 256px "
                 "boundary guard buffers to eliminate pixel-extent leakage. This limitation is stated "
                 "loudly in all reports."
             ),

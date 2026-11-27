@@ -1,11 +1,6 @@
 name: Deploy Research Report to GitHub Pages
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "docs/**"
-      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -26,10 +21,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Stage report figures into docs/figures
+        run: |
+          mkdir -p docs/figures
+          cp reports/real/figures/georef_sri_overlay.png \
+             reports/real/figures/label_efficiency_curve.png \
+             reports/real/figures/selective_prediction_hardened.png \
+             reports/real/figures/unet_overlays.png \
+             reports/real/figures/unet_reliability.png \
+             docs/figures/
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

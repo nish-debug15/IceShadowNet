@@ -44,14 +44,14 @@ def test_split_plan_two_scenes():
 
 
 def test_split_plan_single_scene_fallback():
-    """Verify fallback to blocked along-track strip CV with 64px guard buffer when N == 1."""
+    """Verify fallback to deterministic blocked along-track strip CV with 256px guard buffer when N == 1."""
     mock_scenes = [
-        {"scene_id": "ch2_sar_ncxl_20260308t062017233", "total_patches": 2498, "positive_patches": 585, "positive_rate": "23.42%"}
+        {"scene_id": "ch2_sar_ncxl_20260308t062017233", "total_patches": 14282, "positive_patches": 2393, "positive_rate": "16.76%"}
     ]
     plan = generate_split_plan(mock_scenes)
     assert plan["n_scenes"] == 1
     assert "BLOCKED STRIP" in plan["plan_type"]
-    assert plan["buffer_pixels"] == 64
+    assert plan["buffer_pixels"] == 256
     assert "SINGLE SCENE DETECTED" in plan["note"]
     
     # Check disjoint strip allocations
@@ -77,14 +77,14 @@ def test_scene_table_markdown_formatting():
             "total_scene_dimensions": "319812 rows x 116 cols",
             "footprint_lat": "-86.35° to -81.90°",
             "footprint_lon": "13.95° to 49.27°",
-            "analyzed_swath": "Lines 100,000..140,000",
-            "positive_pixels": "3,033 (0.065%)",
-            "positive_patches": 585,
-            "negative_patches": 1913,
-            "positive_rate": "23.42%",
+            "analyzed_swath": "Lines 90,624..319,812",
+            "positive_pixels": "13,815 (0.0524%)",
+            "positive_patches": 2393,
+            "negative_patches": 11889,
+            "positive_rate": "16.76%",
         }
     ]
     md = format_scene_table_markdown(mock_scenes)
     assert "| Scene ID |" in md
     assert "`ch2_sar_test`" in md
-    assert "23.42%" in md
+    assert "16.76%" in md
