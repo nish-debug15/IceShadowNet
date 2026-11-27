@@ -35,9 +35,13 @@ real_dfsar:
   processed_dir: "data/processed_real"
   reports_dir: "reports/real"
   models_dir: "models_real"
+  active_rows: [90624, 319812] # Valid non-zero quad-pol SLI range (229,188 rows = 71.66% of strip)
   patch_size: 64          # Spatial patch size (HxW) to fit within 116-pixel swath
   stride: 32              # Sliding window stride along and across track
   grid_size: [1, 20]      # Spatial block split grid (y_bins, x_bins) along-track
+  buffer_pixels: 256      # Azimuth guard buffer (rows) between adjacent strips of different splits
+  val_strips: [2, 6, 17]  # Deterministic non-adjacent val strips
+  test_strips: [0, 8, 15] # Deterministic non-adjacent test strips
   multilook_window: 7     # Boxcar averaging window for complex polarimetry
   cpr_threshold: 1.0      # CPR > 1.0 threshold for anomalous volume scattering
   dop_threshold: 0.13     # DOP < 0.13 threshold for depolarized return
@@ -49,7 +53,7 @@ real_dfsar:
 scene_registry:
   raw_dir: "data/raw"
   min_test_positives: 30
-  guard_buffer_pixels: 64
+  guard_buffer_pixels: 256
   multilook_window: 7
   cpr_threshold: 1.0
   dop_threshold: 0.13
@@ -57,6 +61,6 @@ scene_registry:
     - id: "ch2_sar_ncxl_20260308t062017233"
       instrument: "DFSAR L1A Quad-Pol SLI"
       path: "data/raw/sar_nxcl"
-      active_rows: [100000, 140000]
+      active_rows: [90624, 319812]
 
 

@@ -12,8 +12,8 @@
 
 ## Split Verification Summary
 
-- **Train patches**: 1686 (Pos: 362)
-- **Val patches**: 342 (Pos: 77)
-- **Test patches**: 338 (Pos: 101)
-- **Buffer pixels**: 64 px
-- **Gate condition (Test pos >= 30)**: PASSED (101 >= 30)
+- **Train patches**: 9828 (Pos: 1614)
+- **Val patches**: 2040 (Pos: 335)
+- **Test patches**: 2018 (Pos: 332)
+- **Buffer pixels**: 256 px
+- **Gate condition (Test pos >= 30)**: PASSED (332 >= 30)

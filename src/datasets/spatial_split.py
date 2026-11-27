@@ -141,6 +141,72 @@ def spatial_block_split(
             
     return train_coords, val_coords, test_coords
 
+
+def deterministic_strip_split(
+    coordinates: list,
+    n_strips: int = 20,
+    val_strips: tuple = (2, 6, 17),
+    test_strips: tuple = (0, 8, 15),
+    patch_size: int = 64,
+    buffer_pixels: int = 256,
+):
+    """
+    Deterministic along-track strip split with azimuth guard buffers.
+    Assigns explicit strip indices to val and test; remaining strips go to train.
+    Drops patches whose [x, x + patch_size) comes within buffer_pixels of a strip
+    belonging to a different split.
+    Returns (train_coords, val_coords, test_coords, coord_to_strip).
+    """
+    if not coordinates:
+        return [], [], [], {}
+
+    val_set = set(val_strips)
+    test_set = set(test_strips)
+    assert val_set.isdisjoint(test_set), "val_strips and test_strips must be disjoint"
+
+    min_x = min(c[0] for c in coordinates)
+    max_x = max(c[0] for c in coordinates)
+    block_width = (max_x - min_x + 1e-5) / n_strips
+
+    coord_to_strip = {}
+    for x, y in coordinates:
+        col = min(int((x - min_x) / block_width), n_strips - 1)
+        coord_to_strip[(x, y)] = col
+
+    strip_to_split = {}
+    for s in range(n_strips):
+        if s in val_set:
+            strip_to_split[s] = "val"
+        elif s in test_set:
+            strip_to_split[s] = "test"
+        else:
+            strip_to_split[s] = "train"
+
+    train_coords, val_coords, test_coords = [], [], []
+    for (x, y), col in coord_to_strip.items():
+        my_split = strip_to_split[col]
+        if buffer_pixels > 0:
+            drop = False
+            if col > 0 and strip_to_split[col - 1] != my_split:
+                boundary_x = min_x + col * block_width
+                if (x - boundary_x) < buffer_pixels:
+                    drop = True
+            if col < n_strips - 1 and strip_to_split[col + 1] != my_split:
+                boundary_x = min_x + (col + 1) * block_width
+                if (boundary_x - (x + patch_size)) < buffer_pixels:
+                    drop = True
+            if drop:
+                continue
+
+        if my_split == "train":
+            train_coords.append((x, y))
+        elif my_split == "val":
+            val_coords.append((x, y))
+        else:
+            test_coords.append((x, y))
+
+    return train_coords, val_coords, test_coords, coord_to_strip
+
 if __name__ == '__main__':
     # Unit test to prove no block appears in more than one split
     # Create a synthetic grid of coordinates

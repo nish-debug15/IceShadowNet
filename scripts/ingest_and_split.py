@@ -29,7 +29,11 @@ from src.preprocessing.data_ops import (
     load_dfsar, load_ohrc, compute_cpr_dop,
     label_from_threshold, generate_patches,
 )
-from src.datasets.spatial_split import spatial_block_split, assert_no_extent_leakage
+from src.datasets.spatial_split import (
+    spatial_block_split,
+    deterministic_strip_split,
+    assert_no_extent_leakage,
+)
 from src.datasets.scene_registry import scan_raw_directory, generate_split_plan, format_scene_table_markdown
 
 
@@ -70,16 +74,25 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
     print("RUNNING REAL DFSAR INGESTION PIPELINE (L1A Quad-Pol SLI)")
     print("="*60)
 
-    raw_dir = "data/raw/sar_nxcl"
-    start_row = 100000
-    num_rows = 40000
-    P = 64
-    stride = 32
-    grid_size = (1, 20)
-    W = 7
-    cpr_thresh = 1.0
-    dop_thresh = 0.13
-    min_pos_px = 5
+    import yaml, json
+    cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.yaml")
+    with open(cfg_path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f).get("real_dfsar", {})
+
+    raw_dir = cfg.get("raw_dir", "data/raw/sar_nxcl")
+    active_rows = cfg.get("active_rows", [90624, 319812])
+    start_row = int(active_rows[0])
+    num_rows = int(active_rows[1]) - start_row
+    P = int(cfg.get("patch_size", 64))
+    stride = int(cfg.get("stride", 32))
+    grid_size = tuple(cfg.get("grid_size", [1, 20]))
+    buffer_px = int(cfg.get("buffer_pixels", 256))
+    val_strips = tuple(cfg.get("val_strips", [2, 6, 17]))
+    test_strips = tuple(cfg.get("test_strips", [0, 8, 15]))
+    W = int(cfg.get("multilook_window", 7))
+    cpr_thresh = float(cfg.get("cpr_threshold", 1.0))
+    dop_thresh = float(cfg.get("dop_threshold", 0.13))
+    min_pos_px = int(cfg.get("min_positive_pixels", 5))
 
     print(f"Loading SLI complex data from {raw_dir} (lines {start_row} to {start_row+num_rows})...")
     from src.preprocessing.data_ops import load_complex_dfsar_sli, compute_cpr_dop_complex
@@ -88,6 +101,12 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
     Shv = channels["hv"]
     Svh = channels["vh"]
     Svv = channels["vv"]
+
+    valid_mask = (
+        np.isfinite(Shh) & np.isfinite(Shv) & np.isfinite(Svh) & np.isfinite(Svv)
+        & (np.abs(Shh) > 0) & (np.abs(Svv) > 0)
+    )
+    print(f"Valid finite non-zero quad-pol pixels: {valid_mask.mean()*100:.2f}%")
 
     Shv_sym = 0.5 * (Shv + Svh)
 
@@ -107,21 +126,23 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
     # 2. Derive polarimetric CPR and DOP for labeling
     print(f"Computing complex CPR and DOP (multilook W={W})...")
     cpr, dop = compute_cpr_dop_complex(Shh, Shv, Svh, Svv, W=W)
-    pixel_ice_mask = ((cpr > cpr_thresh) & (dop < dop_thresh)).astype(np.uint8)
+    pixel_ice_mask = ((cpr > cpr_thresh) & (dop < dop_thresh) & valid_mask).astype(np.uint8)
 
     ice_px = int(pixel_ice_mask.sum())
-    total_px = pixel_ice_mask.size
-    print(f"Ice pixels: {ice_px:,} / {total_px:,} ({100*ice_px/total_px:.4f}%)")
+    total_px = int(valid_mask.sum())
+    print(f"Ice pixels: {ice_px:,} / {total_px:,} ({100*ice_px/max(total_px,1):.4f}%)")
 
-    # 3. Patch extraction
+    # 3. Patch extraction (gated on >=95% valid quad-pol pixels)
     H, W_dim = Shh.shape
     patches = []
     coords = []
     for r in range(0, H - P + 1, stride):
         for c in range(0, W_dim - P + 1, stride):
+            if valid_mask[r:r+P, c:c+P].mean() < 0.95:
+                continue
             sub_input = radar_inputs[r:r+P, c:c+P] # (P, P, 3)
             sub_input_t = np.transpose(sub_input, (2, 0, 1)) # (3, P, P)
-            sub_mask = pixel_ice_mask[r:r+P, c:c+P]
+            sub_mask = pixel_ice_mask[r:r+P, c:c+P].copy()
             sub_cpr  = cpr[r:r+P, c:c+P]
             sub_dop  = dop[r:r+P, c:c+P]
             pos_count = int(np.count_nonzero(sub_mask))
@@ -129,7 +150,7 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
             cpr_m = float(sub_cpr.mean())
             dop_m = float(sub_dop.mean())
             frac  = float(pos_count / (P * P))
-            patches.append((sub_input_t, lbl, (r, c), cpr_m, dop_m, frac))
+            patches.append((sub_input_t, lbl, (r, c), cpr_m, dop_m, frac, sub_mask, pos_count))
             coords.append((r, c))
 
     n_total = len(patches)
@@ -144,13 +165,12 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
     print(f"  Ice patches   : {n_ice} ({100*ice_ratio:.1f}%)")
     print(f"  Non-ice       : {n_noice} ({100*(1-ice_ratio):.1f}%)")
 
-    # 4. Spatial block split with boundary buffer
-    buffer_px = 64
-    train_coords, val_coords, test_coords = spatial_block_split(
+    # 4. Deterministic non-adjacent strip split with 256-row azimuth buffer
+    train_coords, val_coords, test_coords, coord_to_strip = deterministic_strip_split(
         coordinates=coords,
-        grid_size=grid_size,
-        train_ratio=0.70,
-        val_ratio=0.15,
+        n_strips=grid_size[1],
+        val_strips=val_strips,
+        test_strips=test_strips,
         patch_size=P,
         buffer_pixels=buffer_px,
     )
@@ -165,7 +185,7 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
 
     # Pixel-extent leakage assertion (hard assertion: zero extent overlap between any splits)
     assert_no_extent_leakage(train_coords, val_coords, test_coords, patch_size=P)
-    print(f"\nSpatial split verified (zero coordinate and zero pixel-extent leakage, buffer={buffer_px}px):")
+    print(f"\nDeterministic strip split verified (zero coordinate and zero pixel-extent leakage, buffer={buffer_px}px):")
     print(f"  Train: {len(train_coords)}  Val: {len(val_coords)}  Test: {len(test_coords)}")
 
     coord_to_patch = {(p[2][0], p[2][1]): p for p in patches}
@@ -176,16 +196,19 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
     val_patches   = coords_to_patches(val_coords)
     test_patches  = coords_to_patches(test_coords)
 
-    # 5. Save splits
+    # 5. Save splits + pixel-level masks + strip_ids
     data_source = "REAL (Chandrayaan-2 DFSAR L1A quad-pol SLI)"
     def save_split(split_patches, name):
-        imgs   = np.stack([p[0] for p in split_patches])
-        labels = np.array([p[1] for p in split_patches], dtype=np.int8)
-        coords_ = np.array([p[2] for p in split_patches], dtype=np.int32)
+        imgs      = np.stack([p[0] for p in split_patches])
+        labels    = np.array([p[1] for p in split_patches], dtype=np.int8)
+        coords_   = np.array([p[2] for p in split_patches], dtype=np.int32)
         cpr_means = np.array([p[3] for p in split_patches], dtype=np.float32)
         dop_means = np.array([p[4] for p in split_patches], dtype=np.float32)
         ice_fracs = np.array([p[5] for p in split_patches], dtype=np.float32)
-        path   = os.path.join(out_processed_dir, f"{name}.npz")
+        masks_    = np.stack([p[6] for p in split_patches]).astype(np.uint8)
+        pos_cnts  = np.array([p[7] for p in split_patches], dtype=np.int32)
+        strips_   = np.array([coord_to_strip[(int(p[2][0]), int(p[2][1]))] for p in split_patches], dtype=np.int32)
+        path      = os.path.join(out_processed_dir, f"{name}.npz")
         np.savez_compressed(
             path,
             images=imgs,
@@ -194,15 +217,55 @@ def run_real_dfsar_ingestion(out_processed_dir, out_reports_dir):
             cpr_means=cpr_means,
             dop_means=dop_means,
             ice_fracs=ice_fracs,
+            masks=masks_,
+            pos_px_counts=pos_cnts,
+            strip_ids=strips_,
             data_source=np.array(data_source),
         )
-        print(f"  Saved {name}.npz -> {len(split_patches)} patches  shape={imgs.shape}  [source={data_source}]")
+        print(f"  Saved {name}.npz -> {len(split_patches)} patches  shape={imgs.shape}  masks={masks_.shape}  [source={data_source}]")
         return labels
 
     print("\nSaving processed real splits...")
     lbl_train = save_split(train_patches, "train")
     lbl_val   = save_split(val_patches,   "val")
     lbl_test  = save_split(test_patches,  "test")
+
+    # Save frozen split manifest
+    manifest_entries = []
+    for split_name, sp_patches in [("train", train_patches), ("val", val_patches), ("test", test_patches)]:
+        for idx, p in enumerate(sp_patches):
+            r, c = int(p[2][0]), int(p[2][1])
+            manifest_entries.append({
+                "patch_id": f"{split_name}_{idx:05d}",
+                "split": split_name,
+                "strip_id": int(coord_to_strip[(r, c)]),
+                "row_local": r,
+                "row_abs": start_row + r,
+                "col": c,
+                "label": int(p[1]),
+                "pos_px_count": int(p[7]),
+            })
+    manifest = {
+        "scene_id": "ch2_sar_ncxl_20260308t062017233",
+        "active_rows": [start_row, start_row + num_rows],
+        "patch_size": P,
+        "stride": stride,
+        "grid_size": list(grid_size),
+        "buffer_pixels": buffer_px,
+        "val_strips": list(val_strips),
+        "test_strips": list(test_strips),
+        "rule": "deterministic non-adjacent 3-strip val/test minimizing max prevalence deviation from train (val/test pos>=300, 0.7x-1.4x train rate, max test strip share <=40%)",
+        "counts": {
+            "train": {"patches": len(train_patches), "positives": int(lbl_train.sum())},
+            "val": {"patches": len(val_patches), "positives": int(lbl_val.sum())},
+            "test": {"patches": len(test_patches), "positives": int(lbl_test.sum())},
+        },
+        "patches": manifest_entries,
+    }
+    manifest_path = os.path.join(out_processed_dir, "split_manifest.json")
+    with open(manifest_path, "w", encoding="utf-8") as mf:
+        json.dump(manifest, mf, indent=2)
+    print(f"  Saved frozen split manifest -> {manifest_path} ({len(manifest_entries)} patches)")
 
     # Hard assertions
     assert lbl_train.sum() > 0, "FATAL: Train split contains zero positive (ice) samples!"
