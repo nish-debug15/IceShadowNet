@@ -38,6 +38,7 @@ scratch/
 reports/*.png
 reports/gradcam/*.png
 reports/real/*.png
+reports/real/maps/*.tif
 
 # Environment
 .env

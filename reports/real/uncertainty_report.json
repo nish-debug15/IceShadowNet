@@ -1,0 +1,112 @@
+{
+  "val_th": 0.44999999999999996,
+  "mc_dropout": {
+    "dice": 0.030220573077715935,
+    "iou": 0.015342110220398936,
+    "pr_auc": 0.009424336066582557,
+    "roc_auc": 0.9361054677227453,
+    "tp": 733,
+    "fp": 43424,
+    "fn": 3620,
+    "pos_px": 4353,
+    "total_px": 8265728,
+    "prevalence": 0.0005266323789023786,
+    "ece": 0.04307186970004093,
+    "mean_entropy": 0.14451433718204498,
+    "mean_var": 7.304579048650339e-05
+  },
+  "deep_ensemble": {
+    "dice": 0.03336170212765958,
+    "iou": 0.016963822052968668,
+    "pr_auc": 0.010991245895656384,
+    "roc_auc": 0.9518448399587224,
+    "tp": 588,
+    "fp": 30309,
+    "fn": 3765,
+    "pos_px": 4353,
+    "total_px": 8265728,
+    "prevalence": 0.0005266323789023786,
+    "ece": 0.047941241431815176,
+    "mean_entropy": 0.1563720703125,
+    "mean_var": 0.001941680908203125
+  },
+  "selective_prediction": [
+    {
+      "coverage": 1.0,
+      "n_px": 8265728,
+      "pos_px": 4353,
+      "dice": 0.030220573077715935,
+      "accuracy": 0.994308547293112
+    },
+    {
+      "coverage": 0.9,
+      "n_px": 7439155,
+      "pos_px": 873,
+      "dice": 0.0,
+      "accuracy": 0.9998826479620333
+    },
+    {
+      "coverage": 0.8,
+      "n_px": 6612582,
+      "pos_px": 266,
+      "dice": 0.0,
+      "accuracy": 0.9999597736557368
+    },
+    {
+      "coverage": 0.7,
+      "n_px": 5786009,
+      "pos_px": 110,
+      "dice": 0.0,
+      "accuracy": 0.9999809886227277
+    },
+    {
+      "coverage": 0.5,
+      "n_px": 4132864,
+      "pos_px": 34,
+      "dice": 0.0,
+      "accuracy": 0.9999917732594152
+    },
+    {
+      "coverage": 0.3,
+      "n_px": 2479718,
+      "pos_px": 19,
+      "dice": 0.0,
+      "accuracy": 0.9999923378384155
+    },
+    {
+      "coverage": 0.1,
+      "n_px": 826572,
+      "pos_px": 12,
+      "dice": 0.0,
+      "accuracy": 0.9999854822084464
+    }
+  ],
+  "boundary_uncertainty_test": {
+    "GT Interior": {
+      "n_px": 4353,
+      "mc_entropy_mean": 0.513835072517395,
+      "mc_var_mean": 0.0004569933225866407,
+      "ens_entropy_mean": 0.5576171875,
+      "ens_var_mean": 0.00946807861328125
+    },
+    "GT Boundary Ring (1-2px)": {
+      "n_px": 35376,
+      "mc_entropy_mean": 0.46674343943595886,
+      "mc_var_mean": 0.00043781634303741157,
+      "ens_entropy_mean": 0.51220703125,
+      "ens_var_mean": 0.00952911376953125
+    },
+    "Far Background": {
+      "n_px": 8225999,
+      "mc_entropy_mean": 0.14293316006660461,
+      "mc_var_mean": 7.127392018446699e-05,
+      "ens_entropy_mean": 0.1546630859375,
+      "ens_var_mean": 0.0019044876098632812
+    }
+  },
+  "stitched_maps": {
+    "slant_range_tif": "reports/real\\maps\\test_strips_prob_uncertainty_slant_range.tif",
+    "moon_stereo_tif": "reports/real\\maps\\test_strips_prob_uncertainty_moon_stereo.tif",
+    "covered_pixels": 3129344
+  }
+}
