@@ -235,3 +235,40 @@ def test_frozen_split_and_unet_cpu_smoke():
     assert out.shape == (2, 1, 64, 64)
     assert torch.isfinite(out).all()
 
+
+def test_frozen_split_manifest_integrity():
+    """Verify committed split_manifest.json (runs in CI without gitignored .npz/.pth)."""
+    import json
+
+    manifest_path = os.path.join(os.path.dirname(__file__), "..", "data", "processed_real", "split_manifest.json")
+    assert os.path.isfile(manifest_path), f"Missing {manifest_path}"
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        m = json.load(f)
+
+    assert m["active_rows"] == [90624, 319812]
+    assert m["buffer_pixels"] == 256
+    assert m["val_strips"] == [2, 6, 17]
+    assert m["test_strips"] == [0, 8, 15]
+    assert m["counts"] == {
+        "train": {"patches": 9828, "positives": 1614},
+        "val": {"patches": 2040, "positives": 335},
+        "test": {"patches": 2018, "positives": 332},
+    }
+
+    held = sorted(m["val_strips"] + m["test_strips"])
+    assert all(held[i + 1] - held[i] >= 2 for i in range(len(held) - 1)), "Held-out strips must be non-adjacent"
+
+    # Verify >= 256-row azimuth guard separation between splits
+    by_split = {"train": [], "val": [], "test": []}
+    for p in m["patches"]:
+        by_split[p["split"]].append((p["row_local"], p["col"]))
+    for s1, s2 in [("train", "val"), ("train", "test"), ("val", "test")]:
+        r1 = np.array([x[0] for x in by_split[s1]])
+        r2 = np.array([x[0] for x in by_split[s2]])
+        # Sorted 1D nearest-neighbor distance along azimuth rows must be >= 64 (patch_size) + 256 (buffer)
+        r2_sorted = np.sort(r2)
+        idx = np.searchsorted(r2_sorted, r1)
+        d_left = np.where(idx > 0, np.abs(r1 - r2_sorted[np.maximum(idx - 1, 0)]), np.inf)
+        d_right = np.where(idx < len(r2_sorted), np.abs(r2_sorted[np.minimum(idx, len(r2_sorted) - 1)] - r1), np.inf)
+        assert np.minimum(d_left, d_right).min() >= 64 + 256, f"Buffer violation between {s1} and {s2}"
+
