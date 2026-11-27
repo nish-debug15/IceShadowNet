@@ -30,3 +30,8 @@
 - **Swath Centerline Lateral Offset:** Median `993.8 m`, Mean `2382.0 m`, 90th percentile `6023.7 m` (consistent with `~282 m` TPS hold-out accuracy)
 
 ![SRI Overlay](figures/georef_sri_overlay.png)
+
+## 10-Fold GCP Cross-Validation (All 676 GCPs)
+
+- **10-Fold Hold-Out Residual (Mean / Median / Max):** `367.98 m` / `307.38 m` / `2377.70 m` (alongside 5-GCP hold-out max `281.7249 m`)
+- **Overlap Metric Definition:** The 92.79% overlap metric is the percentage of valid TPS-warped test-strip pixels (61,857 of 66,664) whose nearest-neighbor cell on the official 25 m/px ISRO SRI HH grid has positive finite backscatter (SRI HH > 0).

@@ -1,0 +1,69 @@
+{
+  "n_gcps": 676,
+  "ten_fold_mean_m": 367.9837027841869,
+  "ten_fold_median_m": 307.3766351762679,
+  "ten_fold_max_m": 2377.6990766297567,
+  "folds": [
+    {
+      "fold": 1,
+      "n_test": 68,
+      "mean_m": 342.7452972973116,
+      "max_m": 1356.8188623881754
+    },
+    {
+      "fold": 2,
+      "n_test": 68,
+      "mean_m": 426.98227994315255,
+      "max_m": 1750.233588468859
+    },
+    {
+      "fold": 3,
+      "n_test": 68,
+      "mean_m": 342.6564631269396,
+      "max_m": 1038.9399555305617
+    },
+    {
+      "fold": 4,
+      "n_test": 68,
+      "mean_m": 373.5578964734896,
+      "max_m": 1129.761065930508
+    },
+    {
+      "fold": 5,
+      "n_test": 68,
+      "mean_m": 348.67321825991155,
+      "max_m": 1148.180008856354
+    },
+    {
+      "fold": 6,
+      "n_test": 68,
+      "mean_m": 372.1591381669511,
+      "max_m": 1671.991131935834
+    },
+    {
+      "fold": 7,
+      "n_test": 67,
+      "mean_m": 349.87280841586613,
+      "max_m": 1156.4873479085502
+    },
+    {
+      "fold": 8,
+      "n_test": 67,
+      "mean_m": 437.4903996877983,
+      "max_m": 2377.6990766297567
+    },
+    {
+      "fold": 9,
+      "n_test": 67,
+      "mean_m": 383.80701647110374,
+      "max_m": 1651.968553309582
+    },
+    {
+      "fold": 10,
+      "n_test": 67,
+      "mean_m": 301.9093446775149,
+      "max_m": 974.3689945116481
+    }
+  ],
+  "overlap_definition": "The 92.79% overlap metric is the percentage of valid TPS-warped test-strip pixels (61,857 of 66,664) whose nearest-neighbor cell on the official 25 m/px ISRO SRI HH grid has positive finite backscatter (SRI HH > 0)."
+}
