@@ -23,3 +23,10 @@
 
 - **Anisotropic pixels (`0.5 m` azimuth × `9.6 m` range):** Slant-range SLI pixels are ~19× finer along-track than across-track (`output_line_spacing = 0.504866 m`, `output_pixel_spacing = 9.593359 m`); TPS warping to isotropic stereographic pixels interpolates across-track.
 - **Single scene, strip-held-out generalization only:** All evaluations and exported maps come from one DFSAR strip (`ch2_sar_ncxl_20260308t062017233`).
+
+## SRI Product Overlay Check (`test_strips_prob_uncertainty_moon_stereo.tif` vs. `*_d_sri_xx_fp_hh_d18.tif`)
+
+- **Valid Footprint Overlap:** `92.79%` (`61,857 / 66,664` pixels)
+- **Swath Centerline Lateral Offset:** Median `993.8 m`, Mean `2382.0 m`, 90th percentile `6023.7 m` (consistent with `~282 m` TPS hold-out accuracy)
+
+![SRI Overlay](figures/georef_sri_overlay.png)
