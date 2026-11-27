@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IceShadowNet 2.0 — Research Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.65; color: #1f2937; max-width: 960px; margin: 2rem auto; padding: 0 1.25rem; background: #fafafa; }
+    h1, h2, h3 { color: #111827; }
+    h1 { border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3rem; }
+    code { background: #f3f4f6; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.9em; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; background: #fff; font-size: 0.92rem; }
+    th, td { border: 1px solid #e5e7eb; padding: 0.55rem 0.7rem; text-align: left; }
+    th { background: #f3f4f6; font-weight: 600; }
+    .note { background: #eff6ff; border-left: 4px solid #2563eb; padding: 0.8rem 1rem; margin: 1rem 0; }
+    figure { margin: 1.5rem 0; text-align: center; background: #fff; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; }
+    figure img { max-width: 100%; height: auto; }
+    figcaption { font-size: 0.85rem; color: #4b5563; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>IceShadowNet 2.0: Research Report</h1>
+  <p><strong>Detection, Pixel-Level Localization, and Uncertainty Analysis of Lunar South Polar Radar Anomalies in Chandrayaan-2 DFSAR L-Band Quad-Pol Data</strong></p>
+
+  <div class="note">
+    <strong>Proxy-Label Disclaimer:</strong> Ground-truth labels are polarimetric radar proxy labels (<code>CPR &gt; 1.0 &amp; DOP &lt; 0.13</code> on 7&times;7 multilooked data) and do <strong>not</strong> directly confirm physical water ice.
+  </div>
+
+  <h2>Abstract</h2>
+  <p>
+    We evaluate deep learning on Chandrayaan-2 DFSAR Level-1A slant-range imagery (<code>ch2_sar_ncxl_20260308t062017233</code>, rows <code>90,624–319,812</code>, <code>13,886</code> leak-free patches with a <code>256</code>-row azimuth guard buffer) using strictly intensity-only <code>[HH, HV, VV]</code> log-intensities. Four empirical findings emerge:
+    (1) on patch-level binary classification, <code>CustomCNN</code> ties <code>LogisticRegression</code> (<code>0.8124 &plusmn; 0.0408</code> vs. <code>0.8118 &plusmn; 0.0460</code> 5-fold blocked-strip CV ROC-AUC);
+    (2) ImageNet pretraining fails to transfer to SAR (<code>0.7970</code> vs. <code>0.8301</code> ROC-AUC from scratch), while in-domain SimCLR SSL (<code>0.7892</code> at 10% labels) beats <code>ResNet_scratch</code> (<code>0.5250</code>) <strong>but does not beat</strong> <code>LogisticRegression</code> (<code>0.8036</code>) or <code>CustomCNN</code> (<code>0.8080</code>);
+    (3) pixel-level <code>IceUNet</code> achieves <strong><code>0.0093 &plusmn; 0.0003</code> Pixel PR-AUC (<code>17.6&times;</code> lift over <code>0.0527%</code> baseline)</strong> and <strong><code>0.0110</code> (<code>20.9&times;</code> lift)</strong> as a 3-seed ensemble, while low Dice (<code>~0.03</code>; <code>0.0539</code> conditional on positive patches) reflects a physical <strong>phase-information ceiling</strong>; and
+    (4) Thin-Plate-Spline georeferencing over 676 <code>GCS_MOON</code> GCPs yields <code>~282 m</code> (<code>~300 m</code>) hold-out accuracy and <code>92.79%</code> footprint overlap with the official ISRO <code>SRI HH</code> product.
+  </p>
+
+  <h2>1. Patch-Level Benchmark &amp; 5-Fold CV (Honest Negative Result)</h2>
+  <table>
+    <thead>
+      <tr><th>Model</th><th>Test ROC-AUC (N=2,018)</th><th>Test PR-AUC (Base 16.45%)</th><th>F1 (Val Th)</th><th>Clean ROC-AUC (Ablation)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>CustomCNN (3 seeds)</strong></td><td>0.8379 &plusmn; 0.0007</td><td>0.5485 &plusmn; 0.0102</td><td>0.5216 &plusmn; 0.0054</td><td>0.9103 &plusmn; 0.0021</td></tr>
+      <tr><td><strong>IceUNet (3 seeds, mean_prob)</strong></td><td>0.8335</td><td>0.5404</td><td>0.5185</td><td>0.9035</td></tr>
+      <tr><td><strong>IceUNet (Optuna, 1 seed)</strong></td><td>0.8497</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td><strong>ResNet_scratch (3 seeds)</strong></td><td>0.8301 &plusmn; 0.0064</td><td>0.5203 &plusmn; 0.0135</td><td>0.5240 &plusmn; 0.0057</td><td>0.8961 &plusmn; 0.0119</td></tr>
+      <tr><td><strong>LogisticRegression</strong></td><td>0.8207</td><td>0.4976</td><td>0.5086</td><td>0.8811</td></tr>
+      <tr><td><strong>ResNet_SSL (100% labels)</strong></td><td>0.8093 &plusmn; 0.0022</td><td>0.5231 &plusmn; 0.0140</td><td>0.4733</td><td>—</td></tr>
+      <tr><td><strong>ResNet_pretrained (3 seeds)</strong></td><td>0.7970 &plusmn; 0.0123</td><td>0.4529 &plusmn; 0.0126</td><td>0.4687 &plusmn; 0.0280</td><td>0.8633 &plusmn; 0.0079</td></tr>
+    </tbody>
+  </table>
+  <p>Across 5-fold blocked-strip CV over all 20 strips (<code>256</code>-row buffer), <code>CustomCNN</code> (<code>0.8124 &plusmn; 0.0408</code> ROC-AUC) ties <code>LogisticRegression</code> (<code>0.8118 &plusmn; 0.0460</code>). Circularity ablation confirms <code>80.9%</code> (<code>250/309</code>) of <code>CustomCNN</code> false positives are <code>1–4 px</code> transition patches.</p>
+
+  <figure>
+    <img src="figures/label_efficiency_curve.png" alt="SimCLR Label Efficiency Curve" />
+    <figcaption>Figure 1: Label-efficiency curve across 10%–100% labeled training fractions. ResNet_SSL outperforms ResNet_scratch and ResNet_pretrained at 10–50% labels, though LogisticRegression (0.8036) and CustomCNN (0.8080) remain competitive at 10%.</figcaption>
+  </figure>
+
+  <h2>2. Pixel-Level Segmentation &amp; Phase-Information Ceiling</h2>
+  <table>
+    <thead>
+      <tr><th>Model</th><th>Pixel PR-AUC</th><th>Lift vs. Prevalence (0.0527%)</th><th>Dice (Val Th)</th><th>Cond. Dice (Pos Patches)</th><th>IoU (Val Th)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Baseline: HV/HH Ratio</td><td>0.0011</td><td>2.1&times;</td><td>0.0036</td><td>—</td><td>0.0018</td></tr>
+      <tr><td>Baseline: Pixel LogReg</td><td>0.0012</td><td>2.3&times;</td><td>0.0016</td><td>—</td><td>0.0008</td></tr>
+      <tr><td><strong>IceUNet (3 seeds)</strong></td><td>0.0093 &plusmn; 0.0003</td><td>17.6&times;</td><td>0.0266 &plusmn; 0.0045</td><td>0.0377–0.0519</td><td>0.0135 &plusmn; 0.0023</td></tr>
+      <tr><td><strong>IceUNet MC Dropout (T=20)</strong></td><td>0.0094</td><td>17.8&times;</td><td>0.0302</td><td>—</td><td>0.0153</td></tr>
+      <tr><td><strong>IceUNet (Optuna Val-Tuned)</strong></td><td>0.0108</td><td>20.5&times;</td><td>0.0286</td><td>—</td><td>0.0145</td></tr>
+      <tr><td><strong>IceUNet 3-Seed Ensemble</strong></td><td>0.0110</td><td>20.9&times;</td><td>0.0334</td><td>0.0539</td><td>0.0170</td></tr>
+    </tbody>
+  </table>
+  <p>Ground-truth <code>DOP</code> and <code>CPR</code> require inter-channel complex phase coherence, which is excluded from the intensity-only <code>[HH, HV, VV]</code> inputs—creating an information ceiling that caps pixel Dice at <code>~0.03</code>. Connected-component post-processing (<code>&ge;5 px</code>) preserves or improves pooled Dice (<code>0.0203 &rarr; 0.0230</code> seed 2024; <code>0.0334</code> ensemble).</p>
+
+  <figure>
+    <img src="figures/unet_overlays.png" alt="U-Net Segmentation Overlays" />
+    <figcaption>Figure 2: Representative IceUNet pixel-level predictions (Input [HH, HV, VV] | Ground Truth | Predicted Probability | Binary Mask).</figcaption>
+  </figure>
+
+  <h2>3. Uncertainty, Calibration, &amp; Pruning</h2>
+  <ul>
+    <li><strong>Brier Skill &amp; Calibration:</strong> Weighted-BCE (<code>pos_weight=50</code>) + Dice loss yields low ECE (<code>0.04307</code> MC, <code>0.04794</code> ensemble) but negative Brier Skill Score (<code>-13.07</code> / <code>-14.64</code>) due to probability inflation (mean <code>p=0.2656–0.2886</code> on positives, <code>0.0426</code> on background vs. <code>0.000527</code> prevalence).</li>
+    <li><strong>Boundary Behavior:</strong> MC entropy tracks <code>p</code> near <code>0.5</code>: <code>GT Interior</code> is highest (<code>0.51350</code>), followed by the <code>1–2 px</code> boundary ring (<code>0.46635</code>) and far background (<code>0.14280</code>).</li>
+    <li><strong>Selective Prediction:</strong> At <code>50%</code> coverage, Ensemble Variance (<code>0.7788</code>) and MC Entropy (<code>0.7431</code>) outperform <code>|p - 0.5|</code> (<code>0.7055</code>) on Patch ROC-AUC; Ensemble Variance also improves Pixel Dice (<code>0.0330 &rarr; 0.0368</code> at 60% coverage).</li>
+    <li><strong>Pruning:</strong> L1 unstructured pruning (<code>90%</code>, <code>110,521</code> non-zero params) is parameter reduction only (<code>~11.2 ms</code> dense CUDA latency). Structured channel pruning at <code>30%</code> (<code>base_ch=17</code>) gives no speedup (<code>15.54 ms</code> vs. <code>12.94 ms</code>); <code>50%</code> (<code>base_ch=12</code>) achieves <code>9.81 ms</code> (<code>1.32&times;</code> speedup).</li>
+  </ul>
+
+  <figure>
+    <img src="figures/selective_prediction_hardened.png" alt="Selective Prediction vs |p-0.5|" />
+    <figcaption>Figure 3: Selective prediction (Patch ROC-AUC and Pixel Dice vs. coverage) comparing MC Entropy, Ensemble Variance, and the <code>|p - 0.5|</code> baseline.</figcaption>
+  </figure>
+
+  <h2>4. Georeferencing &amp; SRI Overlay Verification</h2>
+  <p>Normalized Thin-Plate-Spline warping over 676 <code>GCS_MOON</code> GCPs (<code>R = 1,737,400 m</code>) achieves <code>0.000 m</code> in-fit residual, <code>~282 m</code> (<code>~300 m</code>) 5-GCP hold-out residual, and <code>92.79%</code> footprint overlap with the official ISRO <code>SRI HH</code> product (<code>25 m/px</code>).</p>
+
+  <figure>
+    <img src="figures/georef_sri_overlay.png" alt="SRI Overlay Check" />
+    <figcaption>Figure 4: TPS-warped test-strip probability predictions overlaid on the official ISRO Moon Polar Stereographic SRI HH product (92.79% valid footprint overlap).</figcaption>
+  </figure>
+</body>
+</html>
