@@ -29,3 +29,6 @@ jobs:
     - name: Check repo images hygiene
       run: |
         python scripts/check_repo_images.py
+    - name: Number trace audit
+      run: |
+        python scripts/analysis/number_trace_audit.py
