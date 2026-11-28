@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function UntrainedVsTrainedRedirect() {
@@ -15,9 +16,9 @@ export default function UntrainedVsTrainedRedirect() {
       <p>Redirecting to How it works (Before vs After training slider)...</p>
       <p className="text-[11px] text-neutral-500">
         If you are not redirected automatically,{' '}
-        <a href="/pipeline" className="text-cyan-400 hover:underline">
+        <Link href="/pipeline/" className="text-cyan-400 hover:underline">
           click here
-        </a>
+        </Link>
         .
       </p>
     </div>

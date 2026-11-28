@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Tooltip } from '../../components/Tooltip';
+import { withBasePath } from '../../lib/basePath';
 
 const FAILURES = [
   {
@@ -138,7 +139,7 @@ export default function FailureCasesPage() {
                   <span className="font-mono text-[10px] text-neutral-400 block">SAR HH (64×64 px)</span>
                   <div className="aspect-square rounded border border-neutral-800 overflow-hidden bg-black">
                     <img
-                      src={f.hhImg}
+                      src={withBasePath(f.hhImg)}
                       alt={`Patch ${f.patchIdx} HH`}
                       className="w-full h-full object-cover"
                     />
@@ -149,7 +150,7 @@ export default function FailureCasesPage() {
                   <span className="font-mono text-[10px] text-neutral-400 block">Grad-CAM Overlay</span>
                   <div className="aspect-square rounded border border-neutral-800 overflow-hidden bg-black">
                     <img
-                      src={f.overlayImg}
+                      src={withBasePath(f.overlayImg)}
                       alt={`Grad-CAM Patch ${f.patchIdx}`}
                       className="w-full h-full object-cover"
                     />

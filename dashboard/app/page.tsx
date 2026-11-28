@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { SpotlightCard } from '../components/SpotlightCard';
 import { Tooltip } from '../components/Tooltip';
 import { getResultsData } from '../lib/data';
+import { withBasePath } from '../lib/basePath';
 
 export default function OverviewPage() {
   const results = getResultsData();
@@ -52,7 +53,7 @@ export default function OverviewPage() {
         <div className="w-full rounded-lg overflow-hidden border border-neutral-800 bg-black shadow-2xl">
           <div className="relative w-full aspect-[2048/464]">
             <img
-              src="/data/hero_sar_clean.png"
+              src={withBasePath('/data/hero_sar_clean.png')}
               alt="Chandrayaan-2 DFSAR L1A Grayscale SAR crop rotated for display with cyan candidate ice"
               className="w-full h-full object-contain"
             />

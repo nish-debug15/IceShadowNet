@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { PatchRecord } from '../lib/data';
+import { withBasePath } from '../lib/basePath';
 
 interface PatchHoverCardProps {
   patch: PatchRecord;
@@ -29,7 +30,7 @@ export function PatchHoverCard({ patch, selectedModel }: PatchHoverCardProps) {
 
       <div className="w-full aspect-square rounded overflow-hidden border border-neutral-800 mb-2.5 bg-neutral-900">
         <img
-          src={`/${patch.image_path}`}
+          src={withBasePath(patch.image_path)}
           alt={`Patch ${patch.patch_idx}`}
           className="w-full h-full object-cover"
         />

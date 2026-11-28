@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function TrainingRedirect() {
@@ -15,9 +16,9 @@ export default function TrainingRedirect() {
       <p>Redirecting to Results (Training details)...</p>
       <p className="text-[11px] text-neutral-500">
         If you are not redirected automatically,{' '}
-        <a href="/results" className="text-cyan-400 hover:underline">
+        <Link href="/results/" className="text-cyan-400 hover:underline">
           click here
-        </a>
+        </Link>
         .
       </p>
     </div>

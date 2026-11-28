@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { withBasePath } from '../../lib/basePath';
 
 interface SegData {
   unet?: {
@@ -31,8 +32,8 @@ interface SegData {
     }>;
   };
   phase_oracle?: {
-    intensity_3ch_seed42: any;
-    phase_oracle_4ch_seed42: any;
+    intensity_3ch?: { summary: any; runs?: any[] };
+    phase_oracle_4ch?: { summary: any; runs?: any[] };
   };
   selective_redone?: {
     results: Record<string, { aurc: number; error_detection_auroc: number; curve: any[] }>;
@@ -58,7 +59,7 @@ export default function SegmentationPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/data/segmentation_uncertainty.json')
+    fetch(withBasePath('/data/segmentation_uncertainty.json'))
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -91,6 +92,9 @@ export default function SegmentationPage() {
   const ens = data.uncertainty?.deep_ensemble;
   const ctx = data.context_baselines?.context_baselines || [];
   const oracle = data.phase_oracle;
+  const oracle3 = oracle?.intensity_3ch?.summary;
+  const oracle4 = oracle?.phase_oracle_4ch?.summary;
+  const pxPrev = data.context_baselines?.pixel_prevalence || 0.0005266323789023786;
   const sel = data.selective_redone?.results || {};
   const pruning = data.pruning_unified || [];
   const optuna = data.efficiency?.optuna;
@@ -135,7 +139,7 @@ export default function SegmentationPage() {
                 <td className="px-4 py-2.5">HV/HH Ratio (context-free)</td>
                 <td className="px-4 py-2.5">1×1</td>
                 <td className="px-4 py-2.5">{hvhh?.pr_auc?.toFixed(4)}</td>
-                <td className="px-4 py-2.5">{(hvhh?.pr_auc / 0.000527).toFixed(1)}×</td>
+                <td className="px-4 py-2.5">{(hvhh?.pr_auc / pxPrev).toFixed(1)}×</td>
                 <td className="px-4 py-2.5">{hvhh?.dice?.toFixed(4)}</td>
                 <td className="px-4 py-2.5">{hvhh?.iou?.toFixed(4)}</td>
               </tr>
@@ -143,7 +147,7 @@ export default function SegmentationPage() {
                 <td className="px-4 py-2.5">Pixel LogReg (context-free)</td>
                 <td className="px-4 py-2.5">1×1</td>
                 <td className="px-4 py-2.5">{pxlr?.pr_auc?.toFixed(4)}</td>
-                <td className="px-4 py-2.5">{(pxlr?.pr_auc / 0.000527).toFixed(1)}×</td>
+                <td className="px-4 py-2.5">{(pxlr?.pr_auc / pxPrev).toFixed(1)}×</td>
                 <td className="px-4 py-2.5">{pxlr?.dice?.toFixed(4)}</td>
                 <td className="px-4 py-2.5">{pxlr?.iou?.toFixed(4)}</td>
               </tr>
@@ -161,7 +165,7 @@ export default function SegmentationPage() {
                 <td className="px-4 py-2.5 font-semibold text-cyan-300">IceUNet (3-seed mean)</td>
                 <td className="px-4 py-2.5">64×64</td>
                 <td className="px-4 py-2.5 text-cyan-300">{meanOf((r) => r.pooled_val_th.pr_auc).toFixed(4)}</td>
-                <td className="px-4 py-2.5 text-cyan-300">{(meanOf((r) => r.pooled_val_th.pr_auc) / 0.000527).toFixed(1)}×</td>
+                <td className="px-4 py-2.5 text-cyan-300">{(meanOf((r) => r.pooled_val_th.pr_auc) / pxPrev).toFixed(1)}×</td>
                 <td className="px-4 py-2.5 text-cyan-300">{meanOf((r) => r.pooled_val_th.dice).toFixed(4)}</td>
                 <td className="px-4 py-2.5 text-cyan-300">{meanOf((r) => r.pooled_val_th.iou).toFixed(4)}</td>
               </tr>
@@ -170,19 +174,29 @@ export default function SegmentationPage() {
                   <td className="px-4 py-2.5 font-semibold text-emerald-300">IceUNet 3-Seed Ensemble</td>
                   <td className="px-4 py-2.5">64×64</td>
                   <td className="px-4 py-2.5 text-emerald-300">{ens.pr_auc?.toFixed(4)}</td>
-                  <td className="px-4 py-2.5 text-emerald-300">{(ens.pr_auc / 0.000527).toFixed(1)}×</td>
+                  <td className="px-4 py-2.5 text-emerald-300">{(ens.pr_auc / pxPrev).toFixed(1)}×</td>
                   <td className="px-4 py-2.5 text-emerald-300">{ens.dice?.toFixed(4)}</td>
                   <td className="px-4 py-2.5 text-emerald-300">{ens.iou?.toFixed(4)}</td>
                 </tr>
               )}
-              {oracle && (
-                <tr className="bg-amber-950/20 text-amber-200">
-                  <td className="px-4 py-2.5 italic">Phase Oracle IceUNet (4-ch γ_HHVV, CIRCULAR diagnostic, 1 seed)</td>
+              {oracle3 && (
+                <tr className="bg-amber-950/10 text-amber-200/80">
+                  <td className="px-4 py-2.5 italic">Phase Oracle 3-ch Control (3 seeds)</td>
                   <td className="px-4 py-2.5">64×64</td>
-                  <td className="px-4 py-2.5">{oracle.phase_oracle_4ch_seed42.pr_auc.toFixed(4)}</td>
-                  <td className="px-4 py-2.5">{oracle.phase_oracle_4ch_seed42.lift.toFixed(1)}×</td>
-                  <td className="px-4 py-2.5">{oracle.phase_oracle_4ch_seed42.dice_val_th.toFixed(4)}</td>
-                  <td className="px-4 py-2.5">{oracle.phase_oracle_4ch_seed42.iou_val_th.toFixed(4)}</td>
+                  <td className="px-4 py-2.5">{oracle3.pr_auc.mean.toFixed(4)} ± {oracle3.pr_auc.std.toFixed(4)}</td>
+                  <td className="px-4 py-2.5">{oracle3.lift.mean.toFixed(1)}× ± {oracle3.lift.std.toFixed(1)}×</td>
+                  <td className="px-4 py-2.5">{oracle3.dice.mean.toFixed(4)} ± {oracle3.dice.std.toFixed(4)}</td>
+                  <td className="px-4 py-2.5">{oracle3.iou.mean.toFixed(4)} ± {oracle3.iou.std.toFixed(4)}</td>
+                </tr>
+              )}
+              {oracle4 && (
+                <tr className="bg-amber-950/20 text-amber-200">
+                  <td className="px-4 py-2.5 italic">Phase Oracle IceUNet (4-ch γ_HHVV, CIRCULAR diagnostic, 3 seeds)</td>
+                  <td className="px-4 py-2.5">64×64</td>
+                  <td className="px-4 py-2.5">{oracle4.pr_auc.mean.toFixed(4)} ± {oracle4.pr_auc.std.toFixed(4)}</td>
+                  <td className="px-4 py-2.5">{oracle4.lift.mean.toFixed(1)}× ± {oracle4.lift.std.toFixed(1)}×</td>
+                  <td className="px-4 py-2.5">{oracle4.dice.mean.toFixed(4)} ± {oracle4.dice.std.toFixed(4)}</td>
+                  <td className="px-4 py-2.5">{oracle4.iou.mean.toFixed(4)} ± {oracle4.iou.std.toFixed(4)}</td>
                 </tr>
               )}
             </tbody>
@@ -197,7 +211,7 @@ export default function SegmentationPage() {
         </h2>
         <div className="border border-neutral-800 rounded bg-neutral-900/40 p-4">
           <img
-            src="/data/segmentation/unet_overlays.png"
+            src={withBasePath('/data/segmentation/unet_overlays.png')}
             alt="U-Net Segmentation Overlays"
             className="w-full max-w-4xl mx-auto rounded border border-neutral-800"
           />
@@ -251,7 +265,7 @@ export default function SegmentationPage() {
             3b. Patch ROC-AUC &amp; Retained Pixel PR-AUC vs. Coverage
           </h3>
           <img
-            src="/data/segmentation/selective_redone.png"
+            src={withBasePath('/data/segmentation/selective_redone.png')}
             alt="Selective Prediction Redone"
             className="w-full rounded border border-neutral-800"
           />

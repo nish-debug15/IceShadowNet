@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ComparisonSlider } from '../../components/ComparisonSlider';
 import { Tooltip } from '../../components/Tooltip';
 import { getPipelineStagesData, getGradCamData } from '../../lib/data';
+import { withBasePath } from '../../lib/basePath';
 
 const STAGE_DESCRIPTIONS = [
   {
@@ -166,7 +167,7 @@ export default function HowItWorksPage() {
               <div className="relative w-full aspect-[2048/464] rounded overflow-hidden border border-neutral-800 bg-black">
                 {activeStage && (
                   <img
-                    src={`/${activeStage.image}`}
+                    src={withBasePath(activeStage.image)}
                     alt={activeDesc.title}
                     className="w-full h-full object-contain"
                   />
@@ -244,8 +245,8 @@ export default function HowItWorksPage() {
         <div className="flex justify-center">
           <div className="w-full max-w-md">
             <ComparisonSlider
-              beforeImage={`/${activeSlot?.untrained_model?.gradcam_image}`}
-              afterImage={`/${activeSlot?.trained_model?.gradcam_image}`}
+              beforeImage={withBasePath(activeSlot?.untrained_model?.gradcam_image || '')}
+              afterImage={withBasePath(activeSlot?.trained_model?.gradcam_image || '')}
               beforeLabel="Before training"
               afterLabel="After training"
             />

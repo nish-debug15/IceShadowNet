@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { getPatchScoresData, getGradCamData, PatchRecord } from '../../lib/data';
+import { withBasePath } from '../../lib/basePath';
 import { Tooltip } from '../../components/Tooltip';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 
@@ -290,7 +291,7 @@ export default function PatchesPage() {
 
             const isSelected = selectedPatch?.patch_idx === p.patch_idx;
             const paddedIdx = p.patch_idx.toString().padStart(3, '0');
-            const thumbPath = `/data/patches/patch_${paddedIdx}_hh.webp`;
+            const thumbPath = withBasePath(`/data/patches/patch_${paddedIdx}_hh.webp`);
 
             return (
               <button
@@ -387,13 +388,13 @@ export default function PatchesPage() {
               <div className="w-full aspect-square max-w-[384px] mx-auto rounded border border-neutral-800 overflow-hidden bg-black flex items-center justify-center">
                 {showGradCam && gradcamMap.has(selectedPatch.patch_idx) ? (
                   <img
-                    src={`/${gradcamMap.get(selectedPatch.patch_idx)?.trainedImg}`}
+                    src={withBasePath(gradcamMap.get(selectedPatch.patch_idx)?.trainedImg || '')}
                     alt={`Grad-CAM Patch ${selectedPatch.patch_idx}`}
                     className="w-full h-full object-contain"
                   />
                 ) : (
                   <img
-                    src={`/data/patches/patch_${selectedPatch.patch_idx.toString().padStart(3, '0')}_${selectedChannel}.webp`}
+                    src={withBasePath(`/data/patches/patch_${selectedPatch.patch_idx.toString().padStart(3, '0')}_${selectedChannel}.webp`)}
                     alt={`Patch ${selectedPatch.patch_idx} ${selectedChannel}`}
                     className="w-full h-full object-contain"
                   />
