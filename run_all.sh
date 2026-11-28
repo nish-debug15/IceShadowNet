@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# IceShadowNet 2.0 — End-to-End Deterministic Reproduction (Fixed Seeds: 42 123 2024)
+# IceShadowNet — End-to-End Deterministic Reproduction (Fixed Seeds: 42 123 2024)
 PYTHON="${PYTHON:-python}"
 
 echo "[1/11] Ingestion & Deterministic Frozen Split [90624, 319812]..."

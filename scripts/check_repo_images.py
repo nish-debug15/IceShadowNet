@@ -24,7 +24,8 @@ FORBIDDEN_EXTENSIONS = {'.pth', '.npz', '.tif', '.tiff', '.zip'}
 ALLOWED_DIRECTORIES = [
     'dashboard/public/data/',
     'reports/real/figures/',
-    'dashboard/docs/screenshots/'
+    'dashboard/docs/screenshots/',
+    'docs/screenshots/',
 ]
 
 MAX_SINGLE_IMAGE_BYTES = 500 * 1024       # 500 KB

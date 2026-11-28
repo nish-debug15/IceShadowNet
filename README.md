@@ -1,4 +1,4 @@
-# IceShadowNet 2.0
+# IceShadowNet
 
 **Deep Learning Detection, Pixel-Level Localization, and Statistical Evaluation of Lunar South Polar Radar Anomalies Using Chandrayaan-2 DFSAR L-Band Quad-Pol Data**
 
@@ -13,6 +13,7 @@ pip install -r requirements.txt
 make reproduce   # runs bash run_all.sh (fixed seeds: 42, 123, 2024)
 ```
 
+- **Live Report & Dashboard:** https://nish-debug15.github.io/IceShadowNet/ and https://nish-debug15.github.io/IceShadowNet/dashboard/
 - **Audit & CI checks:** `python -m pytest tests -v`, `python scripts/check_repo_images.py`, and `python scripts/analysis/number_trace_audit.py`.
 - **Gitignored Large Artifacts:** Raw DFSAR TIFFs, `.npz` tensor caches, `.pth` checkpoints, and QGIS-ready `.tif` GeoTIFF exports are excluded from Git and documented in [`reports/real/REPRODUCIBILITY.md`](reports/real/REPRODUCIBILITY.md) (release tag `v1.0-endsem`).
 
@@ -73,7 +74,7 @@ make reproduce   # runs bash run_all.sh (fixed seeds: 42, 123, 2024)
 | Ensemble Variance | `0.1259` | `0.7879` | `0.8456` → `0.7759` |
 | Random | `0.1917` | `0.5240` | `0.8456` → `0.8491` |
 
-### Unified Pruning & CUDA Latency (Median Latency, Warmup + Timed Runs)
+### Unified Pruning & CUDA Latency
 
 | Configuration | Non-Zero Params | Patch ROC-AUC (`mean_prob`) | Pixel PR-AUC | Latency `B=1` (ms) | Latency `B=64` (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -83,7 +84,7 @@ make reproduce   # runs bash run_all.sh (fixed seeds: 42, 123, 2024)
 | Unstructured L1 50% (param reduction) | `543,481` | `0.8372` | `0.0074` | `2.220` | `10.933` |
 | Unstructured L1 90% (param reduction) | `110,521` | `0.8273` | `0.0058` | `2.208` | `10.939` |
 
-- Speedup is achieved **only** with structured `50%` channel pruning (`base_ch=12`) at batch size `B=64` (`10.860 → 5.359 ms`, **`2.03×` speedup**), with minimal practical gain at `B=1` (`2.244 → 2.058 ms`, `1.09×`), no speedup for `30%` structured (`11.441 ms`), and no speedup for unstructured L1 (`10.933 / 10.939 ms`). Pruned Patch ROC-AUC differences across configurations (`0.8099–0.8474`) reflect single-seed training variability within noise.
+- Across repeated `B=64` CUDA latency sweeps, `50%` structured channel pruning (`base_ch=12`) yields a measured **`1.32×–2.03×`** speedup (`12.939 → 9.808 ms` in `structured_pruning.json`; `10.860 → 5.359 ms` in `pruning_unified.json`), with negligible gain at `B=1` (`2.244 → 2.058 ms`, `1.09×`), no speedup at `30%` structured (`11.441 ms`), and no speedup for unstructured L1 pruning (`10.933 / 10.939 ms`). Pruned Patch ROC-AUC differences (`0.8099–0.8474`) reflect single-seed variability within noise.
 
 ### Georeferencing
 
@@ -91,6 +92,10 @@ make reproduce   # runs bash run_all.sh (fixed seeds: 42, 123, 2024)
 - **SRI Overlap (`92.79%`):** The 92.79% overlap metric is the percentage of valid TPS-warped test-strip pixels (61,857 of 66,664) whose nearest-neighbor cell on the official 25 m/px ISRO SRI HH grid has positive finite backscatter (SRI HH > 0). Median swath centerline lateral offset = `993.8 m` (mean `2382.0 m`).
 
 ---
+
+## Team & Affiliation
+
+- **Nishit Patel & Project Team** (`RV University, Bengaluru`) — Roles: Data & Labeling, Custom CNN, ResNet, Evaluation & Explainability, Integration & Report.
 
 ## Acknowledgement
 

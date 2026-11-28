@@ -104,7 +104,7 @@ export default function SegmentationPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       <div className="border-b border-neutral-800 pb-6">
         <div className="font-mono text-[11px] text-cyan-400 uppercase tracking-widest mb-2">
-          IceShadowNet 2.0 · Pixel Localization &amp; Hardened Diagnostics
+          IceShadowNet · Pixel Localization &amp; Hardened Diagnostics
         </div>
         <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-100 tracking-tight">
           Pixel-Level Segmentation, Context Baselines &amp; Uncertainty

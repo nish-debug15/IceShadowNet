@@ -27,6 +27,6 @@ gh release create v1.0-endsem \
   models_real/IceUNet_seed123.pth \
   models_real/IceUNet_seed2024.pth \
   models_real/resnet18_ssl_pretrained.pth \
-  --title "IceShadowNet 2.0 (v1.0-endsem)" \
+  --title "IceShadowNet (v1.0-endsem)" \
   --notes "Verified research release: pretrained checkpoints and QGIS-ready Moon Polar Stereographic GeoTIFFs."
 ```
