@@ -40,8 +40,13 @@ echo "[10/11] Val-Only Optuna Sweep & Pruning (Unstructured + Structured)..."
 "$PYTHON" -u -m scripts.analysis.run_optuna_and_pruning
 "$PYTHON" -u -m scripts.analysis.run_structured_pruning
 
-echo "[11/11] SRI Overlay Check & Dashboard Export..."
+echo "[11/12] SRI Overlay Check, Phase-Oracle Diagnostic, & Dashboard Export..."
 "$PYTHON" -u -m scripts.analysis.verify_sri_overlay
+"$PYTHON" -u -m scripts.analysis.run_phase_oracle
 "$PYTHON" -u -m scripts.analysis.export_dashboard_data || true
+
+echo "[12/12] Render Docs from JSON & Run Strict Number-Trace Audit..."
+"$PYTHON" -u -m scripts.analysis.render_numbers
+"$PYTHON" -u -m scripts.analysis.number_trace_audit
 
 echo "Reproduction complete."
