@@ -1023,6 +1023,7 @@ def export_segmentation_uncertainty():
         "phase_oracle": load_j("phase_oracle_diagnostic.json"),
         "pruning_unified": load_j("pruning_unified.json"),
         "georef_10fold": load_j("georef_10fold.json"),
+        "georef_summary": load_j("georef_summary.json"),
     }
     out_file = os.path.join(OUTPUT_BASE, "segmentation_uncertainty.json")
     with open(out_file, "w", encoding="utf-8") as f:

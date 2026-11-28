@@ -14,6 +14,7 @@ Samples 5 well-spaced GCPs (both in-fit and held-out from the TPS fit) and repor
 max residual in metres. Writes reports/real/georeferencing_audit.md.
 """
 
+import json
 import os
 import numpy as np
 import rasterio
@@ -24,6 +25,7 @@ SLI_HH = "data/raw/sar_nxcl/data/calibrated/20260308/ch2_sar_ncxl_20260308t06201
 MOON_LONLAT_PROJ4 = "+proj=longlat +R=1737400 +no_defs"
 MOON_STEREO_PROJ4 = "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +R=1737400 +units=m +no_defs"
 OUT_MD = "reports/real/georeferencing_audit.md"
+OUT_JSON = "reports/real/georef_summary.json"
 
 
 def main():
@@ -103,6 +105,23 @@ def main():
         f.write("- **Single scene, strip-held-out generalization only:** All evaluations and exported maps come from one DFSAR strip (`ch2_sar_ncxl_20260308t062017233`).\n")
 
     print(f"Saved {OUT_MD}")
+
+    existing = json.load(open(OUT_JSON, "r", encoding="utf-8")) if os.path.isfile(OUT_JSON) else {}
+    existing.update({
+        "source_rows": int(H),
+        "source_cols": int(W),
+        "n_gcps": int(len(gcps)),
+        "moon_radius_m": 1737400,
+        "azimuth_spacing_m": 0.504866,
+        "range_spacing_m": 9.593359,
+        "five_gcp_sample_count": int(len(rows_out)),
+        "five_gcp_max_infit_m": float(max_full),
+        "five_gcp_max_holdout_m": float(max_hold),
+        "five_gcp_rows": rows_out,
+    })
+    with open(OUT_JSON, "w", encoding="utf-8") as jf:
+        json.dump(existing, jf, indent=2)
+    print(f"Saved {OUT_JSON}")
 
 
 if __name__ == "__main__":

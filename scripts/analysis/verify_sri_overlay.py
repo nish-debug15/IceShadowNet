@@ -11,6 +11,7 @@ Outputs:
   - Appends SRI overlay check to reports/real/georeferencing_audit.md
 """
 
+import json
 import os
 import sys
 import numpy as np
@@ -25,6 +26,7 @@ MOON_STEREO_TIF = "reports/real/maps/test_strips_prob_uncertainty_moon_stereo.ti
 OUT_PNG = "reports/real/figures/georef_sri_overlay.png"
 MAP_README = "reports/real/maps/README.md"
 AUDIT_MD = "reports/real/georeferencing_audit.md"
+OUT_JSON = "reports/real/georef_summary.json"
 
 
 def main():
@@ -131,7 +133,20 @@ def main():
             af.write(f"- **Swath Centerline Lateral Offset:** Median `{median_offset_m:.1f} m`, Mean `{mean_offset_m:.1f} m`, 90th percentile `{p90_offset_m:.1f} m` (consistent with `~282 m` TPS hold-out accuracy)\n")
             af.write("\n![SRI Overlay](figures/georef_sri_overlay.png)\n")
 
-    print(f"Updated {MAP_README} and {AUDIT_MD}")
+    existing = json.load(open(OUT_JSON, "r", encoding="utf-8")) if os.path.isfile(OUT_JSON) else {}
+    existing.update({
+        "sri_resolution_m": float(sri_res),
+        "overlap_pct": float(overlap_pct),
+        "overlap_valid_px": int(both_valid.sum()),
+        "overlap_total_px": int(ms_valid.sum()),
+        "swath_offset_mean_m": float(mean_offset_m),
+        "swath_offset_median_m": float(median_offset_m),
+        "swath_offset_p90_m": float(p90_offset_m),
+    })
+    os.makedirs(os.path.dirname(OUT_JSON), exist_ok=True)
+    with open(OUT_JSON, "w", encoding="utf-8") as jf:
+        json.dump(existing, jf, indent=2)
+    print(f"Updated {MAP_README}, {AUDIT_MD}, and {OUT_JSON}")
 
 
 if __name__ == "__main__":

@@ -29,14 +29,14 @@
 
   <h2>Abstract</h2>
   <p>
-    We evaluate deep learning on Chandrayaan-2 DFSAR Level-1A slant-range imagery (rows <code>90,624–319,812</code>, <code>13,886</code> patches with <code>256</code>-row azimuth guard buffers; deterministic split <code>val=[2,6,17]</code>, <code>test=[0,8,15]</code> selected using label prevalence constraints with zero model feedback) using intensity-only <code>[HH, HV, VV]</code> log-intensities. Four empirical findings emerge:
+    We evaluate deep learning on Chandrayaan-2 DFSAR Level-1A slant-range imagery (rows <code>90,624&ndash;319,812</code>, <code>13,886</code> patches with <code>256</code>-row azimuth guard buffers; deterministic split <code>val=[2, 6, 17]</code>, <code>test=[0, 8, 15]</code> selected using label prevalence constraints with zero model feedback) using intensity-only <code>[HH, HV, VV]</code> log-intensities. Empirical findings:
     (1) on patch classification, <code>CustomCNN</code> (<code>0.8124 &plusmn; 0.0408</code> 5-fold CV ROC-AUC) is not separable from <code>LogisticRegression</code> (<code>0.8118 &plusmn; 0.0460</code>; within-test-set paired <code>&Delta;ROC-AUC = +0.0228 [-0.0109, +0.0546]</code>);
-    (2) <code>ResNet_pretrained</code> underperforms, consistent across seeds, and is not separable under strip CV, while <code>ResNet_SSL</code> (<code>0.7892</code> at 10% labels) beats <code>ResNet_scratch</code> (<code>0.5250</code>) <strong>but does not beat</strong> <code>LogisticRegression</code> (<code>0.8036</code>) or <code>CustomCNN</code> (<code>0.8080</code>);
-    (3) pixel-level <code>IceUNet</code> improves localization over context-free baselines (<code>0.0093</code> PR-AUC / <code>17.6&times;</code> lift, <code>0.0110</code> / <code>20.9&times;</code> ensemble vs. <code>0.0012</code> for <code>1&times;1</code> LogReg), though context-matched <code>7&times;7+15&times;15</code> <code>HistGBDT</code> already reaches <code>0.0077</code> PR-AUC (<code>14.6&times;</code> lift), and low Dice (<code>~0.03</code>; <code>0.0348</code> even with a circular 4-channel <code>|HH*conj(VV)|</code> oracle) reflects extreme <code>0.0527%</code> imbalance, per-patch normalization, and complex phase dependence; and
-    (4) normalized TPS georeferencing over 676 <code>GCS_MOON</code> GCPs yields <code>367.98 m</code> mean (<code>307.38 m</code> median, <code>2,377.70 m</code> max) 10-fold CV residual and <code>92.79%</code> footprint overlap with the official ISRO <code>SRI HH</code> product.
+    (2) <code>ResNet_pretrained</code> (<code>0.7970 &plusmn; 0.0123</code> 3-seed mean) underperforms, consistent across seeds, and is not separable under strip CV, while <code>ResNet_SSL</code> (<code>0.7892</code> at 10% labels) beats <code>ResNet_scratch</code> (<code>0.5250</code>) <strong>but does not beat</strong> <code>LogisticRegression</code> (<code>0.8036</code>) or <code>CustomCNN</code> (<code>0.8080</code>);
+    (3) pixel-level <code>IceUNet</code> improves localization over context-free baselines (<code>0.0093 &plusmn; 0.0003</code> PR-AUC / <code>17.6&times;</code> lift, <code>0.0110</code> / <code>20.9&times;</code> ensemble vs. <code>0.0012</code> for <code>1&times;1</code> LogReg), though context-matched <code>7&times;7+15&times;15</code> <code>HistGBDT</code> (<code>0.0077</code> PR-AUC, <code>14.6&times;</code> lift) already recovers <code>82.6%</code> of single-seed <code>IceUNet</code> PR-AUC (<code>69.8%</code> of the ensemble), and a circular 3-seed phase-oracle diagnostic (<code>|HH*conj(VV)|</code>) raises PR-AUC by <code>+17.9%</code> (<code>0.0097 &rarr; 0.0114</code>) with Dice remaining low (<code>0.0283 &rarr; 0.0330</code>); and
+    (4) normalized TPS georeferencing over 676 <code>GCS_MOON</code> GCPs yields <code>307.38 m</code> median (<code>367.98 m</code> mean, <code>2,377.70 m</code> max, ~2.4 km boundary tail) 10-fold CV residual and <code>92.79%</code> <code>SRI HH</code> overlap.
   </p>
 
-  <h2>1. Per-Test-Strip &amp; 5-Fold Blocked-Strip CV (Patch Level, Prevalence 16.45%)</h2>
+  <h2>Per-Test-Strip &amp; 5-Fold Blocked-Strip CV (Patch Level, Prevalence 16.45%)</h2>
   <table>
     <thead>
       <tr><th>Model</th><th>Pooled ROC / PR / F1</th><th>Strip 0 ROC / PR / F1</th><th>Strip 8 ROC / PR / F1</th><th>Strip 15 ROC / PR / F1</th><th>5-Fold CV ROC-AUC</th></tr>
@@ -47,17 +47,17 @@
       <tr><td><strong>ResNet_scratch</strong></td><td>0.840 / 0.544 / 0.529</td><td>0.945 / 0.783 / 0.777</td><td>0.640 / 0.174 / 0.214</td><td>0.770 / 0.382 / 0.460</td><td>0.7978 &plusmn; 0.0427</td></tr>
       <tr><td><strong>LogisticRegression</strong></td><td>0.821 / 0.498 / 0.509</td><td>0.916 / 0.643 / 0.685</td><td>0.605 / 0.228 / 0.261</td><td>0.785 / 0.422 / 0.441</td><td>0.8118 &plusmn; 0.0460</td></tr>
       <tr><td><strong>ResNet_pretrained</strong></td><td>0.815 / 0.480 / 0.489</td><td>0.924 / 0.654 / 0.730</td><td>0.602 / 0.137 / 0.236</td><td>0.751 / 0.385 / 0.473</td><td>—</td></tr>
-      <tr><td><em>IceUNet (Optuna, single run, excluded from ranking)</em></td><td><em>0.8497 ROC (1 seed)</em></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td><em>IceUNet (Optuna, single run, excluded from ranking)</em></td><td><em>0.8497 ROC (single run)</em></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
     </tbody>
   </table>
   <p>Under paired sub-block bootstrap (104 <code>256</code>-row blocks + <code>64</code>-row guard, <em>within-test-set variability only</em>), <code>CustomCNN - LogisticRegression</code> (<code>+0.0228 [-0.0109, +0.0546]</code>) and <code>IceUNet_mean_prob - CustomCNN</code> (<code>+0.0020 [-0.0092, +0.0108]</code>) are not separable.</p>
 
   <figure>
     <img src="figures/label_efficiency_curve.png" alt="SimCLR Label Efficiency Curve" />
-    <figcaption>Figure 1: Label-efficiency curve across 10%–100% labeled training fractions. ResNet_SSL beats ResNet_scratch, but does not beat LogisticRegression (0.8036) or CustomCNN (0.8080) at 10% labels.</figcaption>
+    <figcaption>Label-efficiency curve across 10%&ndash;100% labeled training fractions. ResNet_SSL beats ResNet_scratch, but does not beat LogisticRegression (0.8036) or CustomCNN (0.8080) at 10% labels.</figcaption>
   </figure>
 
-  <h2>2. Pixel Localization, Context-Matched Baselines, &amp; Phase Oracle</h2>
+  <h2>Pixel Localization, Context-Matched Baselines, &amp; Circular Phase Oracle</h2>
   <table>
     <thead>
       <tr><th>Model</th><th>Context</th><th>Pixel PR-AUC</th><th>Lift vs. 0.0527%</th><th>Dice (Val Th)</th><th>Cond. Dice (Pos Patches)</th><th>IoU (Val Th)</th></tr>
@@ -65,35 +65,49 @@
     <tbody>
       <tr><td>HV/HH Ratio (context-free)</td><td>1&times;1</td><td>0.0011</td><td>2.2&times;</td><td>0.0036</td><td>—</td><td>0.0018</td></tr>
       <tr><td>Pixel LogReg (context-free)</td><td>1&times;1</td><td>0.0012</td><td>2.3&times;</td><td>0.0016</td><td>—</td><td>0.0008</td></tr>
-      <tr><td>Context Pixel LogReg</td><td>7&times;7</td><td>0.0058</td><td>11.0&times;</td><td>0.0177</td><td>—</td><td>0.0089</td></tr>
-      <tr><td>Context Pixel HistGBDT</td><td>7&times;7</td><td>0.0072</td><td>13.7&times;</td><td>0.0215</td><td>—</td><td>0.0109</td></tr>
-      <tr><td>Context Pixel LogReg</td><td>7&times;7+15&times;15</td><td>0.0067</td><td>12.7&times;</td><td>0.0189</td><td>—</td><td>0.0096</td></tr>
-      <tr><td>Context Pixel HistGBDT</td><td>7&times;7+15&times;15</td><td>0.0077</td><td>14.6&times;</td><td>0.0229</td><td>—</td><td>0.0116</td></tr>
-      <tr><td><strong>IceUNet (3-seed mean)</strong></td><td>64&times;64</td><td>0.0093</td><td>17.6&times;</td><td>0.0266</td><td>0.0377–0.0519</td><td>0.0135</td></tr>
+      <tr><td>Context Pixel LogReg (7x7)</td><td>7x7</td><td>0.0058</td><td>11.0&times;</td><td>0.0177</td><td>—</td><td>0.0089</td></tr>
+      <tr><td>Context Pixel HistGBDT (7x7)</td><td>7x7</td><td>0.0072</td><td>13.7&times;</td><td>0.0215</td><td>—</td><td>0.0109</td></tr>
+      <tr><td>Context Pixel LogReg (7x7+15x15)</td><td>7x7+15x15</td><td>0.0067</td><td>12.7&times;</td><td>0.0189</td><td>—</td><td>0.0096</td></tr>
+      <tr><td>Context Pixel HistGBDT (7x7+15x15)</td><td>7x7+15x15</td><td>0.0077</td><td>14.6&times;</td><td>0.0229</td><td>—</td><td>0.0116</td></tr>
+      <tr><td><strong>IceUNet (3-seed mean)</strong></td><td>64&times;64</td><td>0.0093 &plusmn; 0.0003</td><td>17.6&times;</td><td>0.0266</td><td>0.0377&ndash;0.0519</td><td>0.0135</td></tr>
       <tr><td><strong>IceUNet 3-Seed Ensemble</strong></td><td>64&times;64</td><td>0.0110</td><td>20.9&times;</td><td>0.0334</td><td>0.0539</td><td>0.0170</td></tr>
-      <tr><td><em>Phase Oracle IceUNet (4-ch &gamma;<sub>HHVV</sub>, CIRCULAR, 1 seed)</em></td><td>64&times;64</td><td><em>0.0133</em></td><td><em>25.2&times;</em></td><td><em>0.0348</em></td><td>—</td><td><em>0.0177</em></td></tr>
+      <tr><td><em>Phase Oracle 3-ch Control (3 seeds)</em></td><td>64&times;64</td><td><em>0.0097 &plusmn; 0.0003</em></td><td><em>18.4&times; &plusmn; 0.6&times;</em></td><td><em>0.0283 &plusmn; 0.0026</em></td><td>—</td><td><em>0.0144 &plusmn; 0.0014</em></td></tr>
+      <tr><td><em>Phase Oracle 4-ch (CIRCULAR diagnostic, 3 seeds)</em></td><td>64&times;64</td><td><em>0.0114 &plusmn; 0.0011</em></td><td><em>21.7&times; &plusmn; 2.1&times;</em></td><td><em>0.0330 &plusmn; 0.0044</em></td><td>—</td><td><em>0.0168 &plusmn; 0.0023</em></td></tr>
     </tbody>
   </table>
 
   <figure>
     <img src="figures/unet_overlays.png" alt="U-Net Segmentation Overlays" />
-    <figcaption>Figure 2: Representative IceUNet pixel-level predictions (Input [HH, HV, VV] | Ground Truth | Predicted Probability | Binary Mask).</figcaption>
+    <figcaption>Representative IceUNet pixel-level predictions (Input [HH, HV, VV] | Ground Truth | Predicted Probability | Binary Mask).</figcaption>
   </figure>
 
-  <h2>3. Selective Prediction (Unified Ensemble Predictor) &amp; Pruning</h2>
-  <p>Evaluated on the unified 3-seed ensemble mean predictor, neither Ensemble Variance (<code>AURC 0.1259</code>, <code>ErrDet-AUC 0.7879</code>, <code>50%</code> Patch AUC <code>0.7759</code>) nor MC Entropy (<code>AURC 0.1096</code>, <code>ErrDet-AUC 0.8282</code>, <code>50%</code> Patch AUC <code>0.7616</code>) improves Patch ROC-AUC over full coverage (<code>0.8456</code>), and <code>|p - 0.5|</code> (<code>AURC 0.1084</code>, <code>ErrDet-AUC 0.8310</code>) performs slightly better; <strong>uncertainty is not usable for selective rejection here</strong>. On pruning (median of 200 CUDA runs), unstructured L1 (<code>90%</code>, <code>110,521</code> NZ params, <code>B=64: 10.939 ms</code>) is parameter reduction only; structured <code>30%</code> (<code>11.441 ms</code>) yields no speedup, while <code>50%</code> (<code>271,909</code> params) achieves <code>B=64: 5.359 ms</code> (<code>B=1: 2.058 ms</code>).</p>
+  <h2>Selective Prediction &amp; Unified Pruning</h2>
+  <p>Evaluated on the unified 3-seed ensemble mean predictor, error-detection AUROC exceeds <code>Random</code> (<code>0.5240</code>) for <code>|p - 0.5|</code> (<code>0.8310</code>), <code>MC Entropy</code> (<code>0.8282</code>), and <code>Ensemble Variance</code> (<code>0.7879</code>). Yet retained Patch ROC-AUC falls from <code>0.8456</code> (<code>100%</code>) to <code>0.7759</code> (<code>EnsVar</code>), <code>0.7616</code> (<code>MC</code>), and <code>0.7416</code> (<code>|p - 0.5|</code>) at <code>50%</code> coverage vs <code>0.8491</code> (<code>Random</code>); <code>|p - 0.5|</code> is best by <code>AURC</code> (<code>0.1084</code>). <strong>Uncertainty is not usable for selective rejection here.</strong></p>
+  <p>Structured <code>50%</code> channel pruning achieves a measured CUDA speedup only at <code>B=64</code> (<code>10.860 &rarr; 5.359 ms</code>, <code>2.03&times;</code>), with no material speedup at <code>B=1</code> (<code>2.244 &rarr; 2.058 ms</code>), and none for structured <code>30%</code> or unstructured L1 pruning.</p>
+  <table>
+    <thead>
+      <tr><th>Configuration</th><th>Non-Zero Params</th><th>Patch ROC-AUC</th><th>Pixel PR-AUC</th><th>Latency B=1 (ms)</th><th>Latency B=64 (ms)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Base (0%)</td><td>1,084,681</td><td>0.8291</td><td>0.0093</td><td>2.244</td><td>10.860</td></tr>
+      <tr><td>Structured Channel 30% (base_ch=17)</td><td>544,834</td><td>0.8099</td><td>0.0065</td><td>2.220</td><td>11.441</td></tr>
+      <tr><td>Structured Channel 50% (base_ch=12)</td><td>271,909</td><td>0.8474</td><td>0.0100</td><td>2.058</td><td>5.359</td></tr>
+      <tr><td>Unstructured L1 50% (param reduction)</td><td>543,481</td><td>0.8372</td><td>0.0074</td><td>2.220</td><td>10.933</td></tr>
+      <tr><td>Unstructured L1 90% (param reduction)</td><td>110,521</td><td>0.8273</td><td>0.0058</td><td>2.208</td><td>10.939</td></tr>
+    </tbody>
+  </table>
 
   <figure>
     <img src="figures/selective_redone.png" alt="Selective Prediction Redone" />
-    <figcaption>Figure 3: Selective prediction on the unified 3-seed ensemble mean predictor (Patch ROC-AUC and retained Pixel PR-AUC vs. coverage).</figcaption>
+    <figcaption>Selective prediction on the unified 3-seed ensemble mean predictor (Patch ROC-AUC and retained Pixel PR-AUC vs. coverage).</figcaption>
   </figure>
 
-  <h2>4. Georeferencing (10-Fold GCP CV) &amp; SRI Overlay</h2>
-  <p>10-fold CV over all 676 <code>GCS_MOON</code> GCPs yields <code>367.98 m</code> mean, <code>307.38 m</code> median, and <code>2,377.70 m</code> max hold-out residual (alongside <code>281.7 m</code> max on 5 interior GCPs). The <code>92.79%</code> overlap metric is the percentage of valid TPS-warped test-strip pixels (<code>61,857</code> of <code>66,664</code>) whose nearest-neighbor cell on the official <code>25 m/px</code> ISRO <code>SRI HH</code> grid has positive finite backscatter (<code>SRI HH &gt; 0</code>).</p>
+  <h2>Georeferencing (10-Fold GCP CV) &amp; SRI Overlay</h2>
+  <p>10-fold CV over all 676 <code>GCS_MOON</code> GCPs yields <code>307.38 m</code> median, <code>367.98 m</code> mean, and <code>2,377.70 m</code> max hold-out residual (~2.4 km boundary tail; alongside <code>281.7249 m</code> max on 5 interior GCPs). The 92.79% overlap metric is the percentage of valid TPS-warped test-strip pixels (61,857 of 66,664) whose nearest-neighbor cell on the official 25 m/px ISRO SRI HH grid has positive finite backscatter (SRI HH > 0).</p>
 
   <figure>
     <img src="figures/georef_sri_overlay.png" alt="SRI Overlay Check" />
-    <figcaption>Figure 4: TPS-warped test-strip probability predictions overlaid on the official ISRO Moon Polar Stereographic SRI HH product (92.79% valid footprint overlap).</figcaption>
+    <figcaption>TPS-warped test-strip probability predictions overlaid on the official ISRO Moon Polar Stereographic SRI HH product (92.79% valid footprint overlap).</figcaption>
   </figure>
 </body>
 </html>
